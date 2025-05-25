@@ -1,31 +1,36 @@
 import React from "react";
 
-function Product({ nama, stok, gambar, kategori, onTambahStok }) {
+function Product({ nama, stok, kategori, harga, deskripsi, supplier, onTambahStok, id, onSelectProduct }) {
+  // Pastikan kategori selalu ditampilkan dengan benar
+  const displayKategori = kategori === "TH01" ? "Minuman" : kategori;
+  
   return (
-    <div className="bg-white border p-2 rounded shadow w-36 text-center">
-      <div className="w-full h-24 bg-gray-200 flex items-center justify-center">
-        {gambar ? (
-          <img
-            src={`/${gambar}`}
-            alt={nama}
-            className="h-full w-full object-cover"
-            onError={(e) => (e.target.style.display = "none")}
-          />
-        ) : (
-          <span className="text-sm text-gray-500">Gambar</span>
-        )}
-      </div>
-      <p className="text-xs mt-2 font-semibold">{nama}</p>
-      <p className="text-xs text-gray-600 italic">{kategori}</p>
-      <p className="text-xs">STOK: {stok}</p>
-      <button
-        className="mt-1 bg-green-500 text-white px-2 py-1 rounded text-xs hover:bg-green-600"
-        onClick={onTambahStok}
-      >
-        + Tambah Stok
-      </button>
+    <div 
+      className="border rounded shadow p-4 w-72 mb-4 mr-4 bg-white hover:shadow-md transition-shadow cursor-pointer"
+      onClick={() => onSelectProduct && onSelectProduct(id)}
+    >
+      <h4 className="text-lg font-semibold">{nama}</h4>
+      <p className="text-sm text-gray-600">Kategori: {displayKategori}</p>
+      <p className="text-sm">
+        Stok: <span className={stok <= 5 ? "text-red-500 font-bold" : ""}>{stok}</span>
+      </p>
+      <p className="text-sm">Harga: Rp {parseInt(harga).toLocaleString()}</p>
+      {deskripsi && <p className="text-sm text-gray-600 mt-2 line-clamp-2">{deskripsi}</p>}
+      <p className="text-sm text-gray-500 mt-1">Supplier: {supplier}</p>
+      {onTambahStok && (
+        <button 
+          onClick={(e) => {
+            e.stopPropagation();
+            onTambahStok(id);
+          }}
+          className="mt-2 px-3 py-1 bg-green-500 text-white rounded text-sm hover:bg-green-600"
+        >
+          + Tambah Stok
+        </button>
+      )}
     </div>
   );
 }
+
 
 export default Product;
