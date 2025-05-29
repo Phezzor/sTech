@@ -137,7 +137,7 @@ function App() {
                 sidebarOpen={sidebarOpen}
                 setSidebarOpen={setSidebarOpen}
                 onNavigate={(page) => setHalamanAktif(page)}
-                halamanAktif={"produk"}
+                halamanAktif="produk"
                 userData={userData}
               >
                 <ProductIdPage />
@@ -173,7 +173,7 @@ function App() {
                 sidebarOpen={sidebarOpen}
                 setSidebarOpen={setSidebarOpen}
                 onNavigate={(page) => setHalamanAktif(page)}
-                halamanAktif={"produk"}
+                halamanAktif="produk"
                 userData={userData}
               >
                 <EditProductPage />

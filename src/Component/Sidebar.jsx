@@ -1,9 +1,11 @@
-import {
-  FaThLarge,
-  FaCube,
-  FaCog,
-  FaQuestionCircle,
-  FaSignOutAlt,
+import React from "react";
+import { 
+  FaThLarge, 
+  FaCube, 
+  FaExchangeAlt, 
+  FaCog, 
+  FaQuestionCircle, 
+  FaSignOutAlt 
 } from "react-icons/fa";
 
 function Sidebar({ onNavigate, halamanAktif, sidebarOpen, closeSidebar }) {
@@ -51,7 +53,16 @@ function Sidebar({ onNavigate, halamanAktif, sidebarOpen, closeSidebar }) {
               onKeyDown={(e) => e.key === "Enter" && onNavigate("produk")}
             >
               <FaCube /> <span className="font-mono">Produk</span>
+              
             </div>
+            <div
+            className={`p-3 rounded-lg flex items-center gap-3 ${
+              halamanAktif === "transaksi" ? "bg-sky-700" : "bg-sky-600 hover:bg-sky-700"
+            }`}
+            onClick={() => onNavigate("transaksi")}
+          >
+            <FaExchangeAlt size={20} /> <span>Transaction</span>
+          </div>
           </div>
         </div>
       </div>

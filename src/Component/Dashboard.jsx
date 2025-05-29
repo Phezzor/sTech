@@ -1,11 +1,51 @@
-import { FaBox, FaShoppingCart, FaChartLine } from "react-icons/fa";
+import React, { useState, useEffect } from "react";
+import { FaBox, FaShoppingCart } from "react-icons/fa";
 
-function Dashboard({ dataProduk, totalTransaksi }) {
-  // Statistik dasar
-  const totalProduk = dataProduk.length;
-  const totalStok = dataProduk.reduce((total, produk) => total + produk.stok, 0);
-  
-  // Data dummy untuk grafik (bisa disesuaikan)
+function Dashboard({ userData }) {
+  const [totalProduk, setTotalProduk] = useState(0);
+  const [totalStok, setTotalStok] = useState(0);
+  const [totalTransaksi, setTotalTransaksi] = useState(45);
+  const [loading, setLoading] = useState(true);
+  const [error, setError] = useState(null);
+
+  // Fetch data produk dan transaksi saat komponen dimuat
+  useEffect(() => {
+    const fetchData = async () => {
+      try {
+        setLoading(true);
+        const token = localStorage.getItem("token");
+        
+        // Fetch produk
+        const produkResponse = await fetch("https://stechno.up.railway.app/api/product", {
+          headers: { Authorization: `Bearer ${token}` }
+        });
+        
+        if (produkResponse.ok) {
+          const produkData = await produkResponse.json();
+          if (Array.isArray(produkData)) {
+            setTotalProduk(produkData.length);
+            // Hitung total stok
+            const stok = produkData.reduce((total, produk) => 
+              total + (parseInt(produk.stock) || 0), 0);
+            setTotalStok(stok);
+          }
+        }
+        
+        // Untuk sementara gunakan nilai dummy untuk transaksi
+        setTotalTransaksi(45);
+        
+      } catch (err) {
+        console.error("Error fetching dashboard data:", err);
+        setError("Terjadi kesalahan saat mengambil data dashboard");
+      } finally {
+        setLoading(false);
+      }
+    };
+    
+    fetchData();
+  }, []);
+
+  // Data dummy untuk grafik
   const penjualanMingguan = [
     { hari: "Senin", jumlah: 12 },
     { hari: "Selasa", jumlah: 19 },
@@ -16,99 +56,124 @@ function Dashboard({ dataProduk, totalTransaksi }) {
     { hari: "Minggu", jumlah: 25 },
   ];
 
+  if (loading) {
+    return <div className="p-6 text-center">Memuat data dashboard...</div>;
+  }
+
+  if (error) {
+    return <div className="p-6 text-center text-red-500">{error}</div>;
+  }
+
   return (
     <div className="space-y-6">
       <h2 className="text-xl font-bold">Dashboard</h2>
       
       {/* Kartu statistik */}
-      <div className="grid grid-cols-1 md:grid-cols-3 gap-4">
-        <div className="bg-white p-4 rounded-lg shadow-md border border-gray-200">
+      <div className="grid grid-cols-1 md:grid-cols-3 gap-6">
+        <div className="bg-white p-6 rounded-lg shadow-md">
           <div className="flex items-center justify-between">
             <div>
-              <p className="text-sm text-gray-500">Total Produk</p>
-              <p className="text-2xl font-semibold text-gray-800">{totalProduk}</p>
+              <p className="text-gray-500">Total Produk</p>
+              <h3 className="text-2xl font-bold">{totalProduk}</h3>
             </div>
-            <div className="h-12 w-12 rounded-full bg-blue-100 flex items-center justify-center text-blue-600">
-              <FaBox size={20} />
+            <div className="bg-blue-100 p-3 rounded-full">
+              <FaBox className="text-blue-500 text-xl" />
             </div>
           </div>
         </div>
         
-        <div className="bg-white p-4 rounded-lg shadow-md border border-gray-200">
+        <div className="bg-white p-6 rounded-lg shadow-md">
           <div className="flex items-center justify-between">
             <div>
-              <p className="text-sm text-gray-500">Total Stok</p>
-              <p className="text-2xl font-semibold text-gray-800">{totalStok}</p>
+              <p className="text-gray-500">Total Stok</p>
+              <h3 className="text-2xl font-bold">{totalStok}</h3>
             </div>
-            <div className="h-12 w-12 rounded-full bg-green-100 flex items-center justify-center text-green-600">
-              <FaBox size={20} />
+            <div className="bg-green-100 p-3 rounded-full">
+              <FaBox className="text-green-500 text-xl" />
             </div>
           </div>
         </div>
         
-        <div className="bg-white p-4 rounded-lg shadow-md border border-gray-200">
+        <div className="bg-white p-6 rounded-lg shadow-md">
           <div className="flex items-center justify-between">
             <div>
-              <p className="text-sm text-gray-500">Total Transaksi</p>
-              <p className="text-2xl font-semibold text-gray-800">{totalTransaksi}</p>
+              <p className="text-gray-500">Total Transaksi</p>
+              <h3 className="text-2xl font-bold">{totalTransaksi}</h3>
             </div>
-            <div className="h-12 w-12 rounded-full bg-purple-100 flex items-center justify-center text-purple-600">
-              <FaShoppingCart size={20} />
+            <div className="bg-purple-100 p-3 rounded-full">
+              <FaShoppingCart className="text-purple-500 text-xl" />
             </div>
           </div>
         </div>
       </div>
       
       {/* Grafik penjualan mingguan */}
-      <div className="bg-white p-4 rounded-lg shadow-md border border-gray-200">
+      <div className="bg-white p-6 rounded-lg shadow-md">
         <h3 className="text-lg font-semibold mb-4">Penjualan Mingguan</h3>
-        <div className="h-64 flex items-end justify-between px-2">
+        <div className="h-64 flex items-end space-x-2">
           {penjualanMingguan.map((data, index) => (
-            <div key={index} className="flex flex-col items-center">
-              <div
-                className="w-8 bg-sky-500 rounded-t"
-                style={{ height: `${data.jumlah * 2}px` }}
+            <div key={index} className="flex flex-col items-center flex-1">
+              <div 
+                className="bg-blue-500 w-full rounded-t-md" 
+                style={{ height: `${(data.jumlah / 30) * 100}%` }}
               ></div>
-              <p className="text-xs mt-1">{data.hari}</p>
+              <p className="text-xs mt-2">{data.hari}</p>
             </div>
           ))}
         </div>
       </div>
       
-      {/* Tabel produk */}
-      <div className="bg-white p-4 rounded-lg shadow-md border border-gray-200">
-        <h3 className="text-lg font-semibold mb-4">Daftar Produk</h3>
-        <div className="overflow-x-auto">
-          <table className="min-w-full divide-y divide-gray-200">
-            <thead>
-              <tr>
-                <th className="px-4 py-2 text-left text-xs font-medium text-gray-500 uppercase tracking-wider">
-                  Nama Produk
-                </th>
-                <th className="px-4 py-2 text-left text-xs font-medium text-gray-500 uppercase tracking-wider">
-                  Kategori
-                </th>
-                <th className="px-4 py-2 text-left text-xs font-medium text-gray-500 uppercase tracking-wider">
-                  Stok
-                </th>
-              </tr>
-            </thead>
-            <tbody className="divide-y divide-gray-200">
-              {dataProduk.map((produk, index) => (
-                <tr key={index}>
-                  <td className="px-4 py-2 whitespace-nowrap">{produk.nama}</td>
-                  <td className="px-4 py-2 whitespace-nowrap">{produk.kategori}</td>
-                  <td className="px-4 py-2 whitespace-nowrap">
-                    <span className={`px-2 py-1 inline-flex text-xs leading-5 font-semibold rounded-full ${
-                      produk.stok > 5 ? "bg-green-100 text-green-800" : "bg-yellow-100 text-yellow-800"
-                    }`}>
-                      {produk.stok}
-                    </span>
-                  </td>
-                </tr>
-              ))}
-            </tbody>
-          </table>
+      {/* Produk terlaris */}
+      <div className="bg-white p-6 rounded-lg shadow-md">
+        <h3 className="text-lg font-semibold mb-4">Produk Terlaris</h3>
+        <div className="space-y-4">
+          <div className="flex items-center justify-between pb-2 border-b">
+            <div className="flex items-center">
+              <div className="w-10 h-10 bg-gray-200 rounded-md flex items-center justify-center mr-3">
+                <span className="text-xs">P1</span>
+              </div>
+              <div>
+                <p className="font-medium">Produk A</p>
+                <p className="text-sm text-gray-500">Kategori X</p>
+              </div>
+            </div>
+            <div className="text-right">
+              <p className="font-medium">120 terjual</p>
+              <p className="text-sm text-gray-500">Rp 1.200.000</p>
+            </div>
+          </div>
+          
+          <div className="flex items-center justify-between pb-2 border-b">
+            <div className="flex items-center">
+              <div className="w-10 h-10 bg-gray-200 rounded-md flex items-center justify-center mr-3">
+                <span className="text-xs">P2</span>
+              </div>
+              <div>
+                <p className="font-medium">Produk B</p>
+                <p className="text-sm text-gray-500">Kategori Y</p>
+              </div>
+            </div>
+            <div className="text-right">
+              <p className="font-medium">98 terjual</p>
+              <p className="text-sm text-gray-500">Rp 980.000</p>
+            </div>
+          </div>
+          
+          <div className="flex items-center justify-between pb-2 border-b">
+            <div className="flex items-center">
+              <div className="w-10 h-10 bg-gray-200 rounded-md flex items-center justify-center mr-3">
+                <span className="text-xs">P3</span>
+              </div>
+              <div>
+                <p className="font-medium">Produk C</p>
+                <p className="text-sm text-gray-500">Kategori Z</p>
+              </div>
+            </div>
+            <div className="text-right">
+              <p className="font-medium">75 terjual</p>
+              <p className="text-sm text-gray-500">Rp 750.000</p>
+            </div>
+          </div>
         </div>
       </div>
     </div>

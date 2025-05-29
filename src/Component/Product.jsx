@@ -1,14 +1,45 @@
 import React, { useState, useEffect } from "react";
 import { useNavigate } from "react-router-dom";
-import { FaEllipsisH, FaFilter, FaFileExport, FaPlus, FaTags } from "react-icons/fa";
-import AddCategoryModal from "./AddCategoryModal";
+import { FaEllipsisH, FaFilter, FaFileExport, FaPlus } from "react-icons/fa";
+import CategoryDropdown from "./CategoryDropdown";
 
-function Product({ products, categories, loading, loadingCategories, error, onCategoryAdded }) {
+function Product({ products: initialProducts, loading: initialLoading, error: initialError }) {
   const navigate = useNavigate();
   const [selectedCategory, setSelectedCategory] = useState(null);
   const [filteredProducts, setFilteredProducts] = useState([]);
-  const [isAddCategoryModalOpen, setIsAddCategoryModalOpen] = useState(false);
+  const [products, setProducts] = useState(initialProducts || []);
+  const [loading, setLoading] = useState(initialLoading || true);
+  const [error, setError] = useState(initialError || null);
 
+  // Fetch products from API
+  const fetchProducts = async () => {
+    try {
+      setLoading(true);
+      const token = localStorage.getItem("token");
+      const response = await fetch("https://stechno.up.railway.app/api/product", {
+        headers: { Authorization: `Bearer ${token}` }
+      });
+
+      if (response.ok) {
+        const data = await response.json();
+        setProducts(data);
+      } else {
+        setError("Gagal mengambil data produk.");
+      }
+    } catch (err) {
+      console.error("Error fetching products:", err);
+      setError("Terjadi kesalahan saat mengambil data produk.");
+    } finally {
+      setLoading(false);
+    }
+  };
+
+  // Initial fetch
+  useEffect(() => {
+    fetchProducts();
+  }, []);
+
+  // Filter products when category changes
   useEffect(() => {
     if (selectedCategory) {
       setFilteredProducts(products.filter(product => 
@@ -28,18 +59,14 @@ function Product({ products, categories, loading, loadingCategories, error, onCa
   };
 
   const handleCategorySelect = (category) => {
-    setSelectedCategory(category === selectedCategory ? null : category);
+    setSelectedCategory(category);
+    // Refresh products when category changes
+    fetchProducts();
   };
 
-  const handleAddCategory = () => {
-    setIsAddCategoryModalOpen(true);
-  };
-
-  const handleCategoryAdded = (newCategory) => {
-    setIsAddCategoryModalOpen(false);
-    if (onCategoryAdded) {
-      onCategoryAdded(newCategory);
-    }
+  const handleCategoryAdded = () => {
+    // Refresh products after adding a new category
+    fetchProducts();
   };
 
   // Format harga dengan benar
@@ -52,11 +79,6 @@ function Product({ products, categories, loading, loadingCategories, error, onCa
     } catch (error) {
       return "0.00";
     }
-  };
-
-  // Status badge styling
-  const getStatusBadge = (stock) => {
-    return <span className="px-3 py-1 rounded-full text-xs bg-yellow-100 text-yellow-800">Pending</span>;
   };
 
   return (
@@ -90,53 +112,14 @@ function Product({ products, categories, loading, loadingCategories, error, onCa
         </div>
       </div>
       
-      {/* Kategori tabs */}
-      {!loadingCategories && (
-        <div className="mb-6">
-          <div className="flex items-center justify-between mb-2">
-            <div className="flex items-center gap-2">
-              <FaTags className="text-gray-500" />
-              <h3 className="font-medium">Kategori:</h3>
-            </div>
-            <button
-              onClick={handleAddCategory}
-              className="flex items-center gap-1 px-3 py-1 bg-green-500 text-white rounded-md hover:bg-green-600 text-sm"
-            >
-              <FaPlus size={12} /> Tambah Kategori
-            </button>
-          </div>
-          
-          <div className="flex flex-wrap gap-2">
-            <button
-              onClick={() => setSelectedCategory(null)}
-              className={`px-3 py-1.5 rounded-full text-sm ${
-                !selectedCategory 
-                  ? "bg-blue-500 text-white" 
-                  : "bg-gray-100 text-gray-700 hover:bg-gray-200"
-              }`}
-            >
-              Semua
-            </button>
-            {categories.map(category => (
-              <button
-                key={category.id}
-                onClick={() => handleCategorySelect(category)}
-                className={`px-3 py-1.5 rounded-full text-sm ${
-                  selectedCategory?.id === category.id 
-                    ? "bg-blue-500 text-white" 
-                    : "bg-gray-100 text-gray-700 hover:bg-gray-200"
-                }`}
-              >
-                {category.nama}
-              </button>
-            ))}
-            
-            {categories.length === 0 && (
-              <p className="text-sm text-gray-500 italic">Belum ada kategori. Silakan tambahkan kategori baru.</p>
-            )}
-          </div>
-        </div>
-      )}
+      {/* Kategori dropdown sebagai komponen terpisah */}
+      <div className="mb-6">
+        <CategoryDropdown 
+          onCategorySelect={handleCategorySelect}
+          selectedCategory={selectedCategory}
+          onCategoryAdded={handleCategoryAdded}
+        />
+      </div>
       
       {error && (
         <div className="bg-red-100 text-red-700 p-3 rounded mb-4">{error}</div>
@@ -173,7 +156,7 @@ function Product({ products, categories, loading, loadingCategories, error, onCa
                     <td className="py-3 px-4">{product.stock} pcs</td>
                     <td className="py-3 px-4">{product.category_nama}</td>
                     <td className="py-3 px-4">
-                      {getStatusBadge(product.stock)}
+                      <span className="px-3 py-1 rounded-full text-xs bg-yellow-100 text-yellow-800">Pending</span>
                     </td>
                     <td className="py-3 px-4">
                       <button 
@@ -214,12 +197,6 @@ function Product({ products, categories, loading, loadingCategories, error, onCa
           </div>
         </>
       )}
-      
-      <AddCategoryModal 
-        isOpen={isAddCategoryModalOpen}
-        onClose={() => setIsAddCategoryModalOpen(false)}
-        onSuccess={handleCategoryAdded}
-      />
     </div>
   );
 }
