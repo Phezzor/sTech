@@ -1,35 +1,170 @@
 import React, { useState, useEffect } from "react";
-import { FaPlus, FaFilter, FaFileExport } from "react-icons/fa";
+import { useNavigate } from "react-router-dom";
+import { FaPlus, FaFilter, FaFileExport, FaEye, FaEdit, FaTrash, FaSearch, FaChevronLeft, FaChevronRight } from "react-icons/fa";
+import { useToast } from "../Component/Toast";
+import { TableSkeleton, LoadingOverlay, ButtonLoading } from "../Component/Loading";
 
-const TransactionPage = () => {
+const TransactionPage = ({ userData }) => {
+  const navigate = useNavigate();
+  const { showSuccess, showError, showInfo } = useToast();
+
+  // Check if user has admin role
+  const isAdmin = userData?.role === 'admin' || userData?.role === 'administrator';
+
+  // State management
   const [transactions, setTransactions] = useState([]);
   const [loading, setLoading] = useState(true);
   const [error, setError] = useState(null);
+  const [deleteLoading, setDeleteLoading] = useState(null);
+
+  // Pagination state
+  const [currentPage, setCurrentPage] = useState(1);
+  const [totalPages, setTotalPages] = useState(1);
+  const [totalTransactions, setTotalTransactions] = useState(0);
+  const itemsPerPage = 10;
+
+  // Search and filter state
+  const [searchTerm, setSearchTerm] = useState("");
+  const [statusFilter, setStatusFilter] = useState("");
+  const [sortBy, setSortBy] = useState("tanggal");
+  const [sortOrder, setSortOrder] = useState("desc");
 
   useEffect(() => {
     fetchTransactions();
-  }, []);
+  }, [currentPage, searchTerm, statusFilter, sortBy, sortOrder]);
 
   const fetchTransactions = async () => {
     try {
       setLoading(true);
       const token = localStorage.getItem("token");
-      const response = await fetch("https://stechno.up.railway.app/api/transactions", {
+
+      // Build query parameters
+      const params = new URLSearchParams({
+        page: currentPage,
+        limit: itemsPerPage,
+        sort: sortBy,
+        order: sortOrder
+      });
+
+      if (searchTerm) params.append('search', searchTerm);
+      if (statusFilter) params.append('status', statusFilter);
+
+      const response = await fetch(`https://stechno.up.railway.app/api/transaksi?${params}`, {
         headers: { Authorization: `Bearer ${token}` }
       });
 
       if (response.ok) {
         const data = await response.json();
-        setTransactions(data);
+
+        // Handle different API response formats
+        if (data.data && Array.isArray(data.data)) {
+          setTransactions(data.data);
+          setTotalPages(data.totalPages || Math.ceil(data.total / itemsPerPage));
+          setTotalTransactions(data.total || data.data.length);
+        } else if (Array.isArray(data)) {
+          setTransactions(data);
+          setTotalPages(Math.ceil(data.length / itemsPerPage));
+          setTotalTransactions(data.length);
+        } else {
+          setTransactions([]);
+        }
+        setError(null);
       } else {
-        setError("Gagal mengambil data transaksi");
+        throw new Error("Failed to fetch transactions");
       }
     } catch (err) {
       console.error("Error fetching transactions:", err);
-      setError("Terjadi kesalahan saat mengambil data transaksi");
+      setError("Failed to load transactions. Please try again.");
+      showError("Failed to load transactions");
+      setTransactions([]);
     } finally {
       setLoading(false);
     }
+  };
+
+  const handleExport = () => {
+    try {
+      showInfo("Exporting transactions...");
+      const csvContent = "data:text/csv;charset=utf-8,"
+        + "Transaction ID,Date,Customer,Total,Status\n"
+        + transactions.map(transaction =>
+            `${transaction.id},${formatDate(transaction.tanggal)},${transaction.pelanggan || 'N/A'},${transaction.total || 0},${transaction.status || 'pending'}`
+          ).join("\n");
+
+      const encodedUri = encodeURI(csvContent);
+      const link = document.createElement("a");
+      link.setAttribute("href", encodedUri);
+      link.setAttribute("download", "transactions.csv");
+      document.body.appendChild(link);
+      link.click();
+      document.body.removeChild(link);
+      showSuccess(`Successfully exported ${transactions.length} transactions!`);
+    } catch (error) {
+      showError("Failed to export transactions. Please try again.");
+    }
+  };
+
+  const handleDeleteTransaction = async (transactionId, transactionInfo) => {
+    if (!isAdmin) {
+      showError("Access denied. Only administrators can delete transactions.");
+      return;
+    }
+
+    if (!window.confirm(`Are you sure you want to delete transaction #${transactionId}? This action cannot be undone.`)) {
+      return;
+    }
+
+    try {
+      setDeleteLoading(transactionId);
+      showInfo("Deleting transaction...");
+
+      const token = localStorage.getItem("token");
+      const response = await fetch(`https://stechno.up.railway.app/api/transaksi/${transactionId}`, {
+        method: "DELETE",
+        headers: {
+          Authorization: `Bearer ${token}`,
+        },
+      });
+
+      if (response.ok) {
+        showSuccess(`Transaction #${transactionId} deleted successfully!`);
+        fetchTransactions(); // Refresh the list
+      } else {
+        const errorData = await response.json();
+        throw new Error(errorData.message || "Failed to delete transaction");
+      }
+    } catch (error) {
+      console.error("Delete error:", error);
+      showError(error.message || "Failed to delete transaction. Please try again.");
+    } finally {
+      setDeleteLoading(null);
+    }
+  };
+
+  const handlePageChange = (newPage) => {
+    if (newPage >= 1 && newPage <= totalPages) {
+      setCurrentPage(newPage);
+    }
+  };
+
+  const handleSearch = (e) => {
+    setSearchTerm(e.target.value);
+    setCurrentPage(1); // Reset to first page when searching
+  };
+
+  const handleStatusFilter = (e) => {
+    setStatusFilter(e.target.value);
+    setCurrentPage(1); // Reset to first page when filtering
+  };
+
+  const handleSort = (field) => {
+    if (sortBy === field) {
+      setSortOrder(sortOrder === "asc" ? "desc" : "asc");
+    } else {
+      setSortBy(field);
+      setSortOrder("asc");
+    }
+    setCurrentPage(1);
   };
 
   // Format tanggal
@@ -51,97 +186,248 @@ const TransactionPage = () => {
   };
 
   return (
-    <div className="p-6 bg-white rounded-lg shadow">
-      <div className="flex justify-between items-center mb-6">
-        <h2 className="text-2xl font-bold">Transaksi</h2>
-        <div className="flex items-center gap-3">
-          <button className="flex items-center gap-2 px-4 py-2 border rounded-md bg-gray-50 hover:bg-gray-100">
-            <FaFilter /> Filter
-          </button>
-          
-          <button className="flex items-center gap-2 px-4 py-2 border rounded-md bg-gray-50 hover:bg-gray-100">
-            <FaFileExport /> Export
-          </button>
-          
-          <button 
-            className="flex items-center gap-2 px-4 py-2 bg-blue-500 text-white rounded-md hover:bg-blue-600 cursor-pointer"
-          >
-            <FaPlus /> Tambah Transaksi
-          </button>
+    <div className="min-h-screen bg-gradient-to-br from-blue-50 via-blue-100 to-blue-200 p-6">
+      <div className="max-w-7xl mx-auto">
+        {/* Header */}
+        <div className="bg-white rounded-2xl shadow-xl p-6 mb-6 border border-blue-200">
+          <div className="flex flex-col lg:flex-row lg:justify-between lg:items-center gap-4">
+            <div>
+              <h1 className="text-3xl font-bold bg-gradient-to-r from-blue-600 to-blue-800 bg-clip-text text-transparent">
+                Transaction Management
+              </h1>
+              <p className="text-blue-600 mt-2">
+                Manage your transaction history ({totalTransactions} transactions)
+              </p>
+            </div>
+
+            <div className="flex flex-wrap items-center gap-3">
+              <button
+                onClick={handleExport}
+                className="flex items-center gap-2 px-4 py-2 border border-blue-300 rounded-xl bg-white hover:bg-blue-50 text-blue-600 transition-all duration-200"
+              >
+                <FaFileExport /> Export
+              </button>
+
+              {isAdmin && (
+                <button
+                  onClick={() => navigate("/transactions/add")}
+                  className="flex items-center gap-2 px-6 py-2 bg-gradient-to-r from-blue-500 to-blue-600 text-white rounded-xl hover:from-blue-600 hover:to-blue-700 transition-all duration-200 shadow-lg hover:shadow-xl"
+                >
+                  <FaPlus /> Add Transaction
+                </button>
+              )}
+            </div>
+          </div>
         </div>
-      </div>
-      
-      {error && (
-        <div className="bg-red-100 text-red-700 p-3 rounded mb-4">{error}</div>
-      )}
-      
-      {loading ? (
-        <div className="text-center py-4">Loading transaksi...</div>
-      ) : (
-        <>
-          <div className="overflow-x-auto">
-            <table className="min-w-full bg-white border border-gray-200 rounded-lg">
-              <thead>
-                <tr className="bg-gray-50 text-gray-500 text-sm">
-                  <th className="py-3 px-4 text-left border-b">ID Transaksi</th>
-                  <th className="py-3 px-4 text-left border-b">Tanggal</th>
-                  <th className="py-3 px-4 text-left border-b">Pelanggan</th>
-                  <th className="py-3 px-4 text-left border-b">Total</th>
-                  <th className="py-3 px-4 text-left border-b">Status</th>
-                  <th className="py-3 px-4 text-left border-b">Aksi</th>
-                </tr>
-              </thead>
-              <tbody>
-                {transactions.length > 0 ? (
-                  transactions.map((transaction) => (
-                    <tr key={transaction.id} className="border-b hover:bg-gray-50">
-                      <td className="py-3 px-4">#{transaction.id}</td>
-                      <td className="py-3 px-4">{formatDate(transaction.tanggal)}</td>
-                      <td className="py-3 px-4">{transaction.pelanggan}</td>
-                      <td className="py-3 px-4">Rp {formatPrice(transaction.total)}</td>
-                      <td className="py-3 px-4">
-                        <span className={`px-3 py-1 rounded-full text-xs ${
-                          transaction.status === 'completed' 
-                            ? 'bg-green-100 text-green-800' 
-                            : transaction.status === 'pending'
-                            ? 'bg-yellow-100 text-yellow-800'
-                            : 'bg-red-100 text-red-800'
-                        }`}>
-                          {transaction.status === 'completed' ? 'Selesai' : 
-                           transaction.status === 'pending' ? 'Pending' : 'Dibatalkan'}
-                        </span>
-                      </td>
-                      <td className="py-3 px-4">
-                        <button className="text-blue-500 hover:text-blue-700 mr-2">
-                          Detail
-                        </button>
-                      </td>
+
+        {/* Search and Filters */}
+        <div className="bg-white rounded-2xl shadow-xl p-6 mb-6 border border-blue-200">
+          <div className="grid md:grid-cols-4 gap-4">
+            <div className="relative">
+              <FaSearch className="absolute left-3 top-1/2 transform -translate-y-1/2 text-blue-400" />
+              <input
+                type="text"
+                placeholder="Search transactions..."
+                value={searchTerm}
+                onChange={handleSearch}
+                className="w-full pl-10 pr-4 py-3 border border-blue-300 rounded-xl focus:outline-none focus:ring-2 focus:ring-blue-500"
+              />
+            </div>
+
+            <div className="relative">
+              <FaFilter className="absolute left-3 top-1/2 transform -translate-y-1/2 text-blue-400" />
+              <select
+                value={statusFilter}
+                onChange={handleStatusFilter}
+                className="w-full pl-10 pr-4 py-3 border border-blue-300 rounded-xl focus:outline-none focus:ring-2 focus:ring-blue-500 appearance-none"
+              >
+                <option value="">All Status</option>
+                <option value="completed">Completed</option>
+                <option value="pending">Pending</option>
+                <option value="cancelled">Cancelled</option>
+              </select>
+            </div>
+
+            <select
+              value={sortBy}
+              onChange={(e) => handleSort(e.target.value)}
+              className="px-4 py-3 border border-blue-300 rounded-xl focus:outline-none focus:ring-2 focus:ring-blue-500"
+            >
+              <option value="tanggal">Sort by Date</option>
+              <option value="total">Sort by Total</option>
+              <option value="pelanggan">Sort by Customer</option>
+              <option value="status">Sort by Status</option>
+            </select>
+
+            <button
+              onClick={() => handleSort(sortBy)}
+              className="px-4 py-3 border border-blue-300 rounded-xl hover:bg-blue-50 transition-all duration-200"
+            >
+              {sortOrder === "asc" ? "↑ Ascending" : "↓ Descending"}
+            </button>
+          </div>
+        </div>
+
+        {/* Results Section */}
+        <div className="bg-white rounded-2xl shadow-xl p-6 border border-blue-200">
+          {error && (
+            <div className="bg-red-100 border border-red-400 text-red-700 px-4 py-3 rounded-xl mb-6">{error}</div>
+          )}
+
+          {loading ? (
+            <TableSkeleton rows={5} columns={6} />
+          ) : (
+            <>
+              <div className="overflow-x-auto">
+                <table className="min-w-full bg-white border border-blue-200 rounded-xl">
+                  <thead>
+                    <tr className="bg-gradient-to-r from-blue-50 to-blue-100 text-blue-800 text-sm">
+                      <th className="py-4 px-6 text-left border-b border-blue-200 font-semibold">Transaction ID</th>
+                      <th className="py-4 px-6 text-left border-b border-blue-200 font-semibold">Date</th>
+                      <th className="py-4 px-6 text-left border-b border-blue-200 font-semibold">Customer</th>
+                      <th className="py-4 px-6 text-left border-b border-blue-200 font-semibold">Total</th>
+                      <th className="py-4 px-6 text-left border-b border-blue-200 font-semibold">Status</th>
+                      <th className="py-4 px-6 text-left border-b border-blue-200 font-semibold">Actions</th>
                     </tr>
-                  ))
-                ) : (
-                  <tr>
-                    <td colSpan="6" className="py-8 text-center text-gray-500">
-                      Tidak ada data transaksi
-                    </td>
-                  </tr>
-                )}
-              </tbody>
+                  </thead>
+                  <tbody>
+                    {transactions.length > 0 ? (
+                      transactions.map((transaction) => (
+                        <tr key={transaction.id} className="border-b border-blue-100 hover:bg-gradient-to-r hover:from-blue-50 hover:to-blue-100 transition-all duration-200">
+                          <td className="py-4 px-6">
+                            <span className="px-3 py-1 bg-blue-100 text-blue-700 rounded-lg text-sm font-mono font-medium">
+                              #{transaction.id}
+                            </span>
+                          </td>
+                          <td className="py-4 px-6">
+                            <span className="text-blue-800">{formatDate(transaction.tanggal || new Date())}</span>
+                          </td>
+                          <td className="py-4 px-6">
+                            <span className="font-medium text-blue-800">{transaction.pelanggan || 'Walk-in Customer'}</span>
+                          </td>
+                          <td className="py-4 px-6">
+                            <span className="font-semibold text-green-600">Rp {formatPrice(transaction.total || 0)}</span>
+                          </td>
+                          <td className="py-4 px-6">
+                            <span className={`px-3 py-1 rounded-lg text-xs font-medium ${
+                              transaction.status === 'completed'
+                                ? 'bg-green-100 text-green-800'
+                                : transaction.status === 'pending'
+                                ? 'bg-yellow-100 text-yellow-800'
+                                : 'bg-red-100 text-red-800'
+                            }`}>
+                              {transaction.status === 'completed' ? 'Completed' :
+                               transaction.status === 'pending' ? 'Pending' : 'Cancelled'}
+                            </span>
+                          </td>
+                          <td className="py-4 px-6">
+                            <div className="flex items-center gap-2">
+                              <button
+                                className="p-2 text-blue-600 hover:text-blue-800 hover:bg-blue-50 rounded-lg transition-all duration-200"
+                                title="View Details"
+                              >
+                                <FaEye />
+                              </button>
+                              {isAdmin && (
+                                <button
+                                  onClick={() => navigate(`/transactions/edit/${transaction.id}`)}
+                                  className="p-2 text-green-600 hover:text-green-800 hover:bg-green-50 rounded-lg transition-all duration-200"
+                                  title="Edit Transaction"
+                                >
+                                  <FaEdit />
+                                </button>
+                              )}
+
+                              {isAdmin && (
+                                <ButtonLoading
+                                  onClick={() => handleDeleteTransaction(transaction.id, transaction)}
+                                  loading={deleteLoading === transaction.id}
+                                  className="p-2 text-red-600 hover:text-red-800 hover:bg-red-50 rounded-lg transition-all duration-200"
+                                  title="Delete Transaction"
+                                >
+                                  <FaTrash />
+                                </ButtonLoading>
+                              )}
+                            </div>
+                          </td>
+                        </tr>
+                      ))
+                    ) : (
+                      <tr>
+                        <td colSpan="6" className="py-12 text-center">
+                          <div className="text-blue-600">
+                            <div className="text-4xl mb-4">📋</div>
+                            <p className="text-lg font-medium mb-2">No transactions found</p>
+                            <p className="text-sm">Start by adding your first transaction</p>
+                          </div>
+                        </td>
+                      </tr>
+                    )}
+                  </tbody>
             </table>
           </div>
-          
-          {transactions.length > 0 && (
-            <div className="flex justify-between items-center mt-4">
-              <button className="px-3 py-1 border rounded text-gray-500 hover:bg-gray-50">Previous</button>
-              <div className="flex gap-1">
-                <button className="w-8 h-8 flex items-center justify-center rounded bg-blue-500 text-white">1</button>
-                <button className="w-8 h-8 flex items-center justify-center rounded border">2</button>
-                <button className="w-8 h-8 flex items-center justify-center rounded border">3</button>
-              </div>
-              <button className="px-3 py-1 border rounded text-gray-500 hover:bg-gray-50">Next</button>
-            </div>
+
+              {/* Pagination */}
+              {totalPages > 1 && (
+                <div className="bg-blue-50 px-6 py-4 border-t border-blue-200 mt-6">
+                  <div className="flex items-center justify-between">
+                    <div className="text-sm text-blue-600">
+                      Showing {((currentPage - 1) * itemsPerPage) + 1} to {Math.min(currentPage * itemsPerPage, totalTransactions)} of {totalTransactions} transactions
+                    </div>
+
+                    <div className="flex items-center gap-2">
+                      <button
+                        onClick={() => handlePageChange(currentPage - 1)}
+                        disabled={currentPage === 1}
+                        className="flex items-center gap-1 px-3 py-2 text-blue-600 border border-blue-300 rounded-lg hover:bg-blue-100 disabled:opacity-50 disabled:cursor-not-allowed transition-all duration-200"
+                      >
+                        <FaChevronLeft /> Previous
+                      </button>
+
+                      <div className="flex items-center gap-1">
+                        {Array.from({ length: Math.min(5, totalPages) }, (_, i) => {
+                          let pageNum;
+                          if (totalPages <= 5) {
+                            pageNum = i + 1;
+                          } else if (currentPage <= 3) {
+                            pageNum = i + 1;
+                          } else if (currentPage >= totalPages - 2) {
+                            pageNum = totalPages - 4 + i;
+                          } else {
+                            pageNum = currentPage - 2 + i;
+                          }
+
+                          return (
+                            <button
+                              key={pageNum}
+                              onClick={() => handlePageChange(pageNum)}
+                              className={`px-3 py-2 rounded-lg transition-all duration-200 ${
+                                currentPage === pageNum
+                                  ? 'bg-blue-600 text-white'
+                                  : 'text-blue-600 border border-blue-300 hover:bg-blue-100'
+                              }`}
+                            >
+                              {pageNum}
+                            </button>
+                          );
+                        })}
+                      </div>
+
+                      <button
+                        onClick={() => handlePageChange(currentPage + 1)}
+                        disabled={currentPage === totalPages}
+                        className="flex items-center gap-1 px-3 py-2 text-blue-600 border border-blue-300 rounded-lg hover:bg-blue-100 disabled:opacity-50 disabled:cursor-not-allowed transition-all duration-200"
+                      >
+                        Next <FaChevronRight />
+                      </button>
+                    </div>
+                  </div>
+                </div>
+              )}
+            </>
           )}
-        </>
-      )}
+        </div>
+      </div>
     </div>
   );
 };

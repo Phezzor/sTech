@@ -40,7 +40,7 @@ const AddProduct = ({ onSuccess }) => {
   const fetchSuppliers = async () => {
     try {
       const token = localStorage.getItem("token");
-      const response = await fetch("https://stechno.up.railway.app/api/supplier", {
+      const response = await fetch("https://stechno.up.railway.app/api/suppliers", {
         headers: { Authorization: `Bearer ${token}` }
       });
       if (response.ok) {
@@ -100,9 +100,9 @@ const AddProduct = ({ onSuccess }) => {
 
       <input
         type="text"
-        name="produk_kode"
+        name="produk_id"
         placeholder="Kode Produk"
-        value={form.produk_kode}
+        value={form.id}
         onChange={handleChange}
         className="w-full p-2 border rounded"
         required

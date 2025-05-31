@@ -7,7 +7,7 @@ export default defineConfig({
   server: {
     proxy: {
       '/api': {
-        target: 'http://localhost:3000', // ganti sesuai port backend Express-mu
+        target: 'http://localhost:47230', // ganti sesuai port backend Express-mu
         changeOrigin: true,
         secure: false,
       }

@@ -57,7 +57,7 @@ const EditProduct = ({ productId, onSuccess }) => {
   const fetchCategories = async () => {
     try {
       const token = localStorage.getItem("token");
-      const response = await fetch("https://stechno.up.railway.app/api/category", {
+      const response = await fetch("https://stechno.up.railway.app/api/categories", {
         headers: { Authorization: `Bearer ${token}` }
       });
       if (response.ok) {
@@ -72,7 +72,7 @@ const EditProduct = ({ productId, onSuccess }) => {
   const fetchSuppliers = async () => {
     try {
       const token = localStorage.getItem("token");
-      const response = await fetch("https://stechno.up.railway.app/api/supplier", {
+      const response = await fetch("https://stechno.up.railway.app/api/suppliers", {
         headers: { Authorization: `Bearer ${token}` }
       });
       if (response.ok) {
