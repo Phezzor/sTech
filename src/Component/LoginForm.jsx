@@ -3,9 +3,12 @@ import { useNavigate } from "react-router-dom";
 import { useToast } from "./Toast";
 import { ButtonLoading } from "./Loading";
 import { FaEye, FaEyeSlash } from "react-icons/fa";
+import { useActivity } from "../context/ActivityContext";
+import { ActivityTypes } from "../utils/activityLogger";
 
 const LoginForm = ({ onLogin }) => {
   const navigate = useNavigate();
+  const { logActivity } = useActivity();
   const [email, setEmail] = useState("");
   const [password, setPassword] = useState("");
   const [loading, setLoading] = useState(false);
@@ -67,6 +70,13 @@ const LoginForm = ({ onLogin }) => {
 
         const username = user.username || user.name || user.email || 'User';
         showSuccess(`Welcome, ${username}!`);
+
+        // Log login activity
+        logActivity(ActivityTypes.USER_LOGIN, {
+          username: username,
+          email: user.email || email,
+          loginTime: new Date().toISOString()
+        }, user.id);
 
         // Call onLogin callback with the data
         onLogin(data);

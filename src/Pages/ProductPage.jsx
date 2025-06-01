@@ -37,46 +37,124 @@ function ProductPage({ userData }) {
   const [sortOrder, setSortOrder] = useState("asc");
   const [searchTimeout, setSearchTimeout] = useState(null);
 
+
+
   useEffect(() => {
     fetchProducts();
     fetchCategories();
-  }, [currentPage, searchTerm, selectedCategory, sortBy, sortOrder]);
+  }, [currentPage, selectedCategory, sortBy, sortOrder]);
+
+  // Separate useEffect for search with debouncing
+  useEffect(() => {
+    if (searchTimeout) {
+      clearTimeout(searchTimeout);
+    }
+
+    const timeout = setTimeout(() => {
+      fetchProducts();
+    }, 500); // 500ms delay for search
+
+    setSearchTimeout(timeout);
+
+    return () => {
+      if (timeout) {
+        clearTimeout(timeout);
+      }
+    };
+  }, [searchTerm]); // eslint-disable-line react-hooks/exhaustive-deps
 
   const fetchProducts = async () => {
     try {
       setLoading(true);
       const token = localStorage.getItem("token");
 
-      // Build query parameters
-      const params = new URLSearchParams({
-        page: currentPage,
-        limit: itemsPerPage,
-        sort: sortBy,
-        order: sortOrder
-      });
-
-      if (searchTerm) params.append('search', searchTerm);
-      if (selectedCategory) params.append('category_id', selectedCategory);
-
-      const response = await fetch(`https://stechno.up.railway.app/api/product?${params}`, {
+      // Fetch all products first (API doesn't support search/filter parameters)
+      const response = await fetch("https://stechno.up.railway.app/api/product", {
         headers: { Authorization: `Bearer ${token}` }
       });
 
       if (response.ok) {
         const data = await response.json();
+        let allProducts = [];
 
         // Handle different API response formats
         if (data.data && Array.isArray(data.data)) {
-          setProducts(data.data);
-          setTotalPages(data.totalPages || Math.ceil(data.total / itemsPerPage));
-          setTotalProducts(data.total || data.data.length);
+          allProducts = data.data;
         } else if (Array.isArray(data)) {
-          setProducts(data);
-          setTotalPages(Math.ceil(data.length / itemsPerPage));
-          setTotalProducts(data.length);
+          allProducts = data;
         } else {
-          setProducts([]);
+          allProducts = [];
         }
+
+        // Apply client-side filtering and searching
+        let filteredProducts = allProducts;
+
+        // Debug: Log all products and their category info
+        console.log("All products:", allProducts);
+        console.log("Selected category:", selectedCategory);
+        console.log("Categories list:", categories);
+
+        // Apply search filter
+        if (searchTerm) {
+          filteredProducts = filteredProducts.filter(product =>
+            product.nama?.toLowerCase().includes(searchTerm.toLowerCase()) ||
+            product.produk_kode?.toLowerCase().includes(searchTerm.toLowerCase()) ||
+            product.deskripsi?.toLowerCase().includes(searchTerm.toLowerCase())
+          );
+        }
+
+        // Apply category filter with multiple comparison methods
+        if (selectedCategory) {
+          console.log("Filtering by category:", selectedCategory);
+
+          filteredProducts = filteredProducts.filter(product => {
+            // Debug each product's category info
+            console.log(`Product: ${product.nama}, category_id: ${product.category_id} (type: ${typeof product.category_id}), category_name: ${product.category_nama}`);
+
+            // Try multiple comparison methods
+            const categoryMatches =
+              product.category_id == selectedCategory ||  // Loose comparison
+              product.category_id === selectedCategory ||  // String comparison
+              product.category_id === parseInt(selectedCategory) ||  // Integer comparison
+              product.category_id === selectedCategory.toString() ||  // String conversion
+              (product.category_nama && categories.find(cat => cat.id == selectedCategory && cat.nama === product.category_nama));
+
+            console.log(`Category match result for ${product.nama}:`, categoryMatches);
+            return categoryMatches;
+          });
+
+          console.log("Filtered products after category filter:", filteredProducts);
+        }
+
+        // Apply sorting
+        filteredProducts.sort((a, b) => {
+          let aValue = a[sortBy] || '';
+          let bValue = b[sortBy] || '';
+
+          // Handle different data types
+          if (sortBy === 'harga' || sortBy === 'stock') {
+            aValue = parseFloat(aValue) || 0;
+            bValue = parseFloat(bValue) || 0;
+          } else {
+            aValue = aValue.toString().toLowerCase();
+            bValue = bValue.toString().toLowerCase();
+          }
+
+          if (sortOrder === 'asc') {
+            return aValue > bValue ? 1 : -1;
+          } else {
+            return aValue < bValue ? 1 : -1;
+          }
+        });
+
+        // Apply pagination
+        const startIndex = (currentPage - 1) * itemsPerPage;
+        const endIndex = startIndex + itemsPerPage;
+        const paginatedProducts = filteredProducts.slice(startIndex, endIndex);
+
+        setProducts(paginatedProducts);
+        setTotalPages(Math.ceil(filteredProducts.length / itemsPerPage));
+        setTotalProducts(filteredProducts.length);
       } else {
         throw new Error("Failed to fetch products");
       }
@@ -92,16 +170,40 @@ function ProductPage({ userData }) {
   const fetchCategories = async () => {
     try {
       const token = localStorage.getItem("token");
-      const response = await fetch("https://stechno.up.railway.app/api/categories", {
-        headers: { Authorization: `Bearer ${token}` }
-      });
 
-      if (response.ok) {
-        const data = await response.json();
-        setCategories(Array.isArray(data) ? data : []);
+      // Try multiple endpoints for categories
+      const endpoints = [
+        "https://stechno.up.railway.app/api/categories",
+        "https://stechno.up.railway.app/api/category"
+      ];
+
+      let categoriesData = [];
+
+      for (const endpoint of endpoints) {
+        try {
+          console.log(`Trying categories endpoint: ${endpoint}`);
+          const response = await fetch(endpoint, {
+            headers: { Authorization: `Bearer ${token}` }
+          });
+
+          if (response.ok) {
+            const data = await response.json();
+            categoriesData = Array.isArray(data) ? data : (data.data ? data.data : []);
+            console.log(`Categories loaded from ${endpoint}:`, categoriesData);
+            break;
+          } else {
+            console.log(`Categories endpoint ${endpoint} failed: ${response.status}`);
+          }
+        } catch (endpointError) {
+          console.log(`Categories endpoint ${endpoint} error:`, endpointError.message);
+          continue;
+        }
       }
-    } catch (err) {
-      console.error("Error fetching categories:", err);
+
+      setCategories(categoriesData);
+    } catch (error) {
+      console.error("Error fetching categories:", error);
+      setCategories([]);
     }
   };
 
@@ -150,17 +252,6 @@ function ProductPage({ userData }) {
     const value = e.target.value;
     setSearchTerm(value);
     setCurrentPage(1); // Reset to first page when searching
-
-    // Debounce search to avoid too many API calls
-    if (searchTimeout) {
-      clearTimeout(searchTimeout);
-    }
-
-    const timeout = setTimeout(() => {
-      console.log("Searching for:", value);
-    }, 300);
-
-    setSearchTimeout(timeout);
   };
 
 
@@ -170,13 +261,8 @@ function ProductPage({ userData }) {
     setCurrentPage(1); // Reset to first page when filtering
   };
 
-  const handleSort = (field) => {
-    if (sortBy === field) {
-      setSortOrder(sortOrder === "asc" ? "desc" : "asc");
-    } else {
-      setSortBy(field);
-      setSortOrder("asc");
-    }
+  const toggleSortOrder = () => {
+    setSortOrder(sortOrder === "asc" ? "desc" : "asc");
     setCurrentPage(1);
   };
 
@@ -188,9 +274,17 @@ function ProductPage({ userData }) {
   };
 
   const getCategoryName = (categoryId) => {
-    const category = categories.find(cat => cat.id === categoryId);
+    // Try multiple comparison methods for finding category
+    const category = categories.find(cat =>
+      cat.id == categoryId ||
+      cat.id === categoryId ||
+      cat.id === parseInt(categoryId) ||
+      cat.id === categoryId?.toString()
+    );
     return category ? category.nama : 'No Category';
   };
+
+
 
   if (loading && currentPage === 1) {
     return <FullPageLoading message="Loading products..." />;
@@ -227,21 +321,29 @@ function ProductPage({ userData }) {
         <div className="bg-white rounded-2xl shadow-xl p-6 mb-6 border border-blue-200">
           <div className="grid md:grid-cols-4 gap-4">
             <div className="relative">
+              <label htmlFor="search-products" className="sr-only">Search products</label>
               <FaSearch className="absolute left-3 top-1/2 transform -translate-y-1/2 text-blue-400" />
               <input
+                id="search-products"
+                name="search"
                 type="text"
                 placeholder="Search products..."
                 value={searchTerm}
                 onChange={handleSearch}
+                autoComplete="off"
                 className="w-full pl-10 pr-4 py-3 border border-blue-300 rounded-xl focus:outline-none focus:ring-2 focus:ring-blue-500"
               />
             </div>
 
             <div className="relative">
+              <label htmlFor="filter-category" className="sr-only">Filter by category</label>
               <FaFilter className="absolute left-3 top-1/2 transform -translate-y-1/2 text-blue-400" />
               <select
+                id="filter-category"
+                name="category"
                 value={selectedCategory}
                 onChange={handleCategoryFilter}
+                autoComplete="off"
                 className="w-full pl-10 pr-4 py-3 border border-blue-300 rounded-xl focus:outline-none focus:ring-2 focus:ring-blue-500 appearance-none"
               >
                 <option value="">All Categories</option>
@@ -253,19 +355,27 @@ function ProductPage({ userData }) {
               </select>
             </div>
 
-            <select
-              value={sortBy}
-              onChange={(e) => handleSort(e.target.value)}
-              className="px-4 py-3 border border-blue-300 rounded-xl focus:outline-none focus:ring-2 focus:ring-blue-500"
-            >
-              <option value="nama">Sort by Name</option>
-              <option value="harga">Sort by Price</option>
-              <option value="stock">Sort by Stock</option>
-              <option value="created_at">Sort by Date</option>
-            </select>
+
+
+            <div>
+              <label htmlFor="sort-by" className="sr-only">Sort by</label>
+              <select
+                id="sort-by"
+                name="sortBy"
+                value={sortBy}
+                onChange={(e) => setSortBy(e.target.value)}
+                autoComplete="off"
+                className="px-4 py-3 border border-blue-300 rounded-xl focus:outline-none focus:ring-2 focus:ring-blue-500"
+              >
+                <option value="nama">Sort by Name</option>
+                <option value="harga">Sort by Price</option>
+                <option value="stock">Sort by Stock</option>
+                <option value="created_at">Sort by Date</option>
+              </select>
+            </div>
 
             <button
-              onClick={() => handleSort(sortBy)}
+              onClick={toggleSortOrder}
               className="px-4 py-3 border border-blue-300 rounded-xl hover:bg-blue-50 transition-all duration-200"
             >
               {sortOrder === "asc" ? "↑ Ascending" : "↓ Descending"}
@@ -301,7 +411,23 @@ function ProductPage({ userData }) {
                 ) : products.length === 0 ? (
                   <tr>
                     <td colSpan="7" className="px-6 py-12 text-center text-blue-600">
-                      No products found. {isAdmin && "Click 'Add Product' to get started."}
+                      {searchTerm || selectedCategory ? (
+                        <div>
+                          <div className="text-4xl mb-4">🔍</div>
+                          <p className="text-lg font-medium mb-2">Produk tidak ditemukan</p>
+                          <p className="text-sm">
+                            {searchTerm && `Tidak ada produk yang cocok dengan "${searchTerm}"`}
+                            {searchTerm && selectedCategory && " dan "}
+                            {selectedCategory && `kategori yang dipilih`}
+                          </p>
+                        </div>
+                      ) : (
+                        <div>
+                          <div className="text-4xl mb-4">📦</div>
+                          <p className="text-lg font-medium mb-2">Belum ada produk</p>
+                          <p className="text-sm">{isAdmin && "Klik 'Add Product' untuk memulai."}</p>
+                        </div>
+                      )}
                     </td>
                   </tr>
                 ) : (
@@ -433,6 +559,8 @@ function ProductPage({ userData }) {
             </div>
           )}
         </div>
+
+
       </div>
     </div>
   );

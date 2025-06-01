@@ -1,12 +1,15 @@
 import React, { useState, useEffect } from "react";
 import { useNavigate } from "react-router-dom";
-import { FaSave, FaTimes, FaArrowLeft } from "react-icons/fa";
+import { FaSave, FaTimes, FaArrowLeft, FaBuilding, FaEnvelope, FaMapMarkerAlt } from "react-icons/fa";
 import { useToast } from "../Component/Toast";
 import { ButtonLoading } from "../Component/Loading";
+import { useActivity } from "../context/ActivityContext";
+import { ActivityTypes } from "../utils/activityLogger";
 
 const AddSupplierPage = ({ userData }) => {
   const navigate = useNavigate();
   const { showSuccess, showError, showInfo } = useToast();
+  const { logActivity } = useActivity();
   const [loading, setLoading] = useState(false);
 
   // Check if user has admin role
@@ -73,6 +76,14 @@ const AddSupplierPage = ({ userData }) => {
         const newSupplier = await response.json();
         console.log("Supplier added successfully:", newSupplier);
         showSuccess(`Supplier "${formData.nama}" added successfully!`);
+
+        // Log activity
+        logActivity(ActivityTypes.SUPPLIER_ADDED, {
+          name: formData.nama,
+          id: newSupplier.id || 'unknown',
+          contact: formData.contact_info
+        }, userData?.id);
+
         navigate("/supplier");
       } else {
         const errorData = await response.json();
@@ -114,10 +125,17 @@ const AddSupplierPage = ({ userData }) => {
 
         {/* Form */}
         <div className="bg-white rounded-2xl shadow-xl p-8 border border-blue-200">
+          <div className="mb-6">
+            <h2 className="text-xl font-semibold text-blue-800 mb-2">Supplier Information</h2>
+            <p className="text-blue-600 text-sm">Fill in all supplier details below. All fields are required.</p>
+          </div>
+
           <form onSubmit={handleSubmit} className="space-y-6">
             <div className="space-y-6">
+              {/* Supplier Name */}
               <div>
                 <label className="block text-sm font-medium text-blue-700 mb-2">
+                  <FaBuilding className="inline mr-2 text-blue-600" />
                   Supplier Name *
                 </label>
                 <input
@@ -125,43 +143,47 @@ const AddSupplierPage = ({ userData }) => {
                   name="nama"
                   value={formData.nama}
                   onChange={handleInputChange}
-                  className="w-full px-4 py-3 border border-blue-300 rounded-xl focus:outline-none focus:ring-2 focus:ring-blue-500"
-                  placeholder="Enter supplier name (e.g., CV Jaya Bersama)"
+                  className="w-full px-4 py-3 border border-blue-300 rounded-xl focus:outline-none focus:ring-2 focus:ring-blue-500 transition-all duration-200"
+                  placeholder="e.g., PT. Indofood Sukses Makmur"
                   required
                 />
+                <p className="text-xs text-blue-500 mt-1">Enter the complete legal name of the supplier company</p>
               </div>
 
+              {/* Contact Information */}
               <div>
                 <label className="block text-sm font-medium text-blue-700 mb-2">
-                  Contact Info *
+                  <FaEnvelope className="inline mr-2 text-blue-600" />
+                  Contact Information *
                 </label>
                 <input
                   type="text"
                   name="contact_info"
                   value={formData.contact_info}
                   onChange={handleInputChange}
-                  className="w-full px-4 py-3 border border-blue-300 rounded-xl focus:outline-none focus:ring-2 focus:ring-blue-500"
-                  placeholder="Enter contact info (email, phone, etc.)"
+                  className="w-full px-4 py-3 border border-blue-300 rounded-xl focus:outline-none focus:ring-2 focus:ring-blue-500 transition-all duration-200"
+                  placeholder="e.g., contact@indofood.com or +62-21-12345678"
                   required
                 />
-                <p className="text-sm text-blue-600 mt-1">
-                  You can enter email, phone number, or any contact information
-                </p>
+                <p className="text-xs text-blue-500 mt-1">Primary contact email or phone number for communication</p>
               </div>
 
+              {/* Address */}
               <div>
                 <label className="block text-sm font-medium text-blue-700 mb-2">
-                  Address *
+                  <FaMapMarkerAlt className="inline mr-2 text-blue-600" />
+                  Complete Address *
                 </label>
                 <textarea
                   name="address"
                   value={formData.address}
                   onChange={handleInputChange}
                   rows={4}
-                  className="w-full px-4 py-3 border border-blue-300 rounded-xl focus:outline-none focus:ring-2 focus:ring-blue-500"
-                  placeholder="Enter supplier address (e.g., Arengka II)"
+                  className="w-full px-4 py-3 border border-blue-300 rounded-xl focus:outline-none focus:ring-2 focus:ring-blue-500 transition-all duration-200 resize-none"
+                  placeholder="e.g., Jl. Sudirman No. 123, Jakarta Pusat, DKI Jakarta 10110"
                   required
                 />
+                <p className="text-xs text-blue-500 mt-1">Full business address including street, city, and postal code</p>
               </div>
             </div>
 

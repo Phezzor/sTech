@@ -1,5 +1,6 @@
 import React, { useState, useEffect } from "react";
 import { FaBox, FaShoppingCart, FaTruck, FaUsers, FaArrowUp, FaArrowDown, FaChartLine } from "react-icons/fa";
+import { generateSampleActivities } from "../utils/sampleActivityData";
 
 function Dashboard({ userData }) {
   const [totalProduk, setTotalProduk] = useState(0);
@@ -11,6 +12,17 @@ function Dashboard({ userData }) {
   const [error, setError] = useState(null);
   const [recentProducts, setRecentProducts] = useState([]);
   const [lowStockProducts, setLowStockProducts] = useState([]);
+
+  // Generate sample activities on first load
+  useEffect(() => {
+    const hasGeneratedSamples = localStorage.getItem('stechno_samples_generated');
+    if (!hasGeneratedSamples) {
+      setTimeout(() => {
+        generateSampleActivities();
+        localStorage.setItem('stechno_samples_generated', 'true');
+      }, 2000); // Wait 2 seconds after dashboard loads
+    }
+  }, []);
 
   // Fetch data produk dan transaksi saat komponen dimuat
   useEffect(() => {

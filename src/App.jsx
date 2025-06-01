@@ -24,9 +24,11 @@ import AddTransactionPage from "./Pages/AddTransactionPage";
 import EditTransactionPage from "./Pages/EditTransactionPage";
 import SupplierPage from "./Pages/SupplierPage";
 import AddSupplierPage from "./Pages/AddSupplierPage";
+import EditSupplierPage from "./Pages/EditSupplierPage";
 import { useToast } from "./Component/Toast";
 import { FullPageLoading } from "./Component/Loading";
 import PageTransition from "./Component/PageTransition";
+import { ActivityProvider } from "./context/ActivityContext";
 
 // Komponen route yang dilindungi
 function ProtectedRoute({ isLoggedIn, children }) {
@@ -81,30 +83,80 @@ function App() {
       setIsLoading(true);
       console.log("Validating token:", token);
 
-      const res = await fetch("https://stechno.up.railway.app/api/auth/me", {
-        headers: { Authorization: `Bearer ${token}` },
-      });
+      // Try multiple possible endpoints for token validation
+      const endpoints = [
+        "https://stechno.up.railway.app/api/auth/me",
+        "https://stechno.up.railway.app/api/user/me",
+        "https://stechno.up.railway.app/api/profile",
+        "https://stechno.up.railway.app/api/auth/profile"
+      ];
 
-      console.log("Token validation response status:", res.status);
+      let validationSuccess = false;
+      let userData = null;
 
-      if (res.ok) {
-        const data = await res.json();
-        console.log("Token validation data:", data);
+      for (const endpoint of endpoints) {
+        try {
+          const res = await fetch(endpoint, {
+            headers: { Authorization: `Bearer ${token}` },
+          });
 
-        const user = data.user || data.data || data;
-        setUserData(user);
+          console.log(`Token validation attempt at ${endpoint}: ${res.status}`);
+
+          if (res.ok) {
+            const data = await res.json();
+            console.log("Token validation data:", data);
+
+            userData = data.user || data.data || data;
+            validationSuccess = true;
+            break;
+          }
+        } catch (endpointError) {
+          console.log(`Endpoint ${endpoint} failed:`, endpointError.message);
+          continue;
+        }
+      }
+
+      if (validationSuccess && userData) {
+        setUserData(userData);
         setIsLoggedIn(true);
 
-        const username = user.username || user.name || user.email || 'User';
+        const username = userData.username || userData.name || userData.email || 'User';
         showSuccess(`Welcome back, ${username}!`);
       } else {
-        console.log("Token validation failed, removing token");
+        console.log("All token validation endpoints failed");
+        // If token validation fails, we can still try to use the token
+        // Some APIs might not have a validation endpoint but still work with valid tokens
+        // We'll keep the token and let individual API calls handle authentication
+
+        // Try to extract user info from the token itself (if it's a JWT)
+        try {
+          const tokenParts = token.split('.');
+          if (tokenParts.length === 3) {
+            const payload = JSON.parse(atob(tokenParts[1]));
+            console.log("Extracted user data from token:", payload);
+
+            // Check if token is not expired
+            if (payload.exp && payload.exp * 1000 > Date.now()) {
+              const fallbackUserData = {
+                id: payload.id || payload.sub || 'unknown',
+                username: payload.username || payload.name || 'User',
+                email: payload.email || '',
+                role: payload.role || 'user'
+              };
+
+              setUserData(fallbackUserData);
+              setIsLoggedIn(true);
+              console.log("Using fallback user data from token");
+              return;
+            }
+          }
+        } catch (tokenError) {
+          console.log("Could not extract user data from token:", tokenError.message);
+        }
+
+        // If all else fails, remove the token
         localStorage.removeItem("token");
         setIsLoggedIn(false);
-        // Don't show error on initial load if token is just expired
-        if (res.status !== 401) {
-          showError("Session expired. Please login again.");
-        }
       }
     } catch (err) {
       console.error("Error validating token:", err);
@@ -123,7 +175,8 @@ function App() {
 
   return (
     <Router>
-      <ToastContainer />
+      <ActivityProvider>
+        <ToastContainer />
 
       {error && (
         <div className="fixed top-0 left-0 right-0 z-50 bg-red-100 p-4 text-red-700 text-center">
@@ -446,6 +499,24 @@ function App() {
           }
         />
 
+        {/* Edit Supplier Page */}
+        <Route
+          path="/suppliers/edit/:id"
+          element={
+            <ProtectedRoute isLoggedIn={isLoggedIn}>
+              <Layout
+                sidebarOpen={sidebarOpen}
+                setSidebarOpen={setSidebarOpen}
+                onNavigate={(page) => setHalamanAktif(page)}
+                halamanAktif="supplier"
+                userData={userData}
+              >
+                <EditSupplierPage userData={userData} />
+              </Layout>
+            </ProtectedRoute>
+          }
+        />
+
         {/* Settings Page */}
         <Route
           path="/settings"
@@ -487,7 +558,7 @@ function App() {
         </Routes>
       </PageTransition>
 
-
+      </ActivityProvider>
     </Router>
   );
 }
