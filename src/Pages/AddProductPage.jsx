@@ -2,24 +2,33 @@ import React, { useState, useEffect } from "react";
 import { useNavigate } from "react-router-dom";
 import { FaSave, FaTimes, FaArrowLeft } from "react-icons/fa";
 import { useToast } from "../Component/Toast";
+import { useAnimatedMessage } from "../Component/AnimatedMessage";
 import { ButtonLoading } from "../Component/Loading";
 
 const AddProductPage = ({ userData }) => {
   const navigate = useNavigate();
   const { showSuccess, showError, showInfo } = useToast();
+  const {
+    showSuccess: showAnimatedSuccess,
+    showError: showAnimatedError,
+    showInfo: showAnimatedInfo,
+    MessageContainer
+  } = useAnimatedMessage();
   const [loading, setLoading] = useState(false);
   const [categories, setCategories] = useState([]);
+  const [suppliers, setSuppliers] = useState([]);
 
   // Check if user has admin role
   const isAdmin = userData?.role === 'admin' || userData?.role === 'administrator';
 
   const [formData, setFormData] = useState({
-    nama: "",
     produk_kode: "",
+    nama: "",
+    deskripsi: "",
     harga: "",
     stock: "",
     category_id: "",
-    deskripsi: ""
+    supplier_id: ""
   });
 
   useEffect(() => {
@@ -31,6 +40,7 @@ const AddProductPage = ({ userData }) => {
     }
 
     fetchCategories();
+    fetchSuppliers();
   }, [isAdmin, navigate]);
 
   const fetchCategories = async () => {
@@ -49,6 +59,22 @@ const AddProductPage = ({ userData }) => {
     }
   };
 
+  const fetchSuppliers = async () => {
+    try {
+      const token = localStorage.getItem("token");
+      const response = await fetch("https://stechno.up.railway.app/api/suppliers", {
+        headers: { Authorization: `Bearer ${token}` }
+      });
+
+      if (response.ok) {
+        const data = await response.json();
+        setSuppliers(Array.isArray(data) ? data : []);
+      }
+    } catch (error) {
+      console.error("Error fetching suppliers:", error);
+    }
+  };
+
   const handleInputChange = (e) => {
     const { name, value } = e.target;
     setFormData(prev => ({
@@ -60,41 +86,60 @@ const AddProductPage = ({ userData }) => {
   const handleSubmit = async (e) => {
     e.preventDefault();
 
-    if (!formData.nama || !formData.produk_kode || !formData.harga || !formData.stock) {
-      showError("Please fill in all required fields");
+    console.log("Form submitted with data:", formData);
+
+    if (!formData.produk_kode || !formData.nama || !formData.harga || !formData.stock) {
+      showAnimatedError("Please fill in all required fields (Product Code, Name, Price, Stock)");
       return;
     }
 
     setLoading(true);
-    showInfo("Adding product...");
+    showAnimatedInfo("Adding product...");
 
     try {
       const token = localStorage.getItem("token");
+      console.log("Token:", token);
+
+      const requestBody = {
+        produk_kode: formData.produk_kode,
+        nama: formData.nama,
+        deskripsi: formData.deskripsi,
+        harga: parseFloat(formData.harga),
+        stock: parseInt(formData.stock),
+        category_id: formData.category_id || null,
+        supplier_id: formData.supplier_id || null
+      };
+
+      console.log("Request body:", requestBody);
+
       const response = await fetch("https://stechno.up.railway.app/api/product", {
         method: "POST",
         headers: {
           "Content-Type": "application/json",
           Authorization: `Bearer ${token}`
         },
-        body: JSON.stringify({
-          ...formData,
-          harga: parseFloat(formData.harga),
-          stock: parseInt(formData.stock),
-          category_id: formData.category_id ? parseInt(formData.category_id) : null
-        })
+        body: JSON.stringify(requestBody)
       });
+
+      console.log("Response status:", response.status);
 
       if (response.ok) {
         const newProduct = await response.json();
-        showSuccess(`Product "${formData.nama}" added successfully!`);
-        navigate("/products");
+        console.log("Product added successfully:", newProduct);
+        showAnimatedSuccess(`🎉 Product "${formData.nama}" added successfully!`);
+
+        // Navigate after a short delay to show the success message
+        setTimeout(() => {
+          navigate("/products");
+        }, 1500);
       } else {
         const errorData = await response.json();
-        throw new Error(errorData.message || "Failed to add product");
+        console.error("API Error:", errorData);
+        throw new Error(errorData.message || `HTTP ${response.status}: Failed to add product`);
       }
     } catch (error) {
       console.error("Error adding product:", error);
-      showError(error.message || "Failed to add product. Please try again.");
+      showAnimatedError(`❌ ${error.message || "Failed to add product. Please try again."}`);
     } finally {
       setLoading(false);
     }
@@ -106,6 +151,7 @@ const AddProductPage = ({ userData }) => {
 
   return (
     <div className="min-h-screen bg-gradient-to-br from-blue-50 via-blue-100 to-blue-200 p-6">
+      <MessageContainer />
       <div className="max-w-4xl mx-auto">
         {/* Header */}
         <div className="bg-white rounded-2xl shadow-xl p-6 mb-6 border border-blue-200">
@@ -131,21 +177,6 @@ const AddProductPage = ({ userData }) => {
             <div className="grid md:grid-cols-2 gap-6">
               <div>
                 <label className="block text-sm font-medium text-blue-700 mb-2">
-                  Product Name *
-                </label>
-                <input
-                  type="text"
-                  name="nama"
-                  value={formData.nama}
-                  onChange={handleInputChange}
-                  className="w-full px-4 py-3 border border-blue-300 rounded-xl focus:outline-none focus:ring-2 focus:ring-blue-500"
-                  placeholder="Enter product name"
-                  required
-                />
-              </div>
-
-              <div>
-                <label className="block text-sm font-medium text-blue-700 mb-2">
                   Product Code *
                 </label>
                 <input
@@ -154,7 +185,22 @@ const AddProductPage = ({ userData }) => {
                   value={formData.produk_kode}
                   onChange={handleInputChange}
                   className="w-full px-4 py-3 border border-blue-300 rounded-xl focus:outline-none focus:ring-2 focus:ring-blue-500"
-                  placeholder="Enter product code"
+                  placeholder="Enter product code (e.g., PDH-001)"
+                  required
+                />
+              </div>
+
+              <div>
+                <label className="block text-sm font-medium text-blue-700 mb-2">
+                  Product Name *
+                </label>
+                <input
+                  type="text"
+                  name="nama"
+                  value={formData.nama}
+                  onChange={handleInputChange}
+                  className="w-full px-4 py-3 border border-blue-300 rounded-xl focus:outline-none focus:ring-2 focus:ring-blue-500"
+                  placeholder="Enter product name (e.g., Baju PDH HIMATIF)"
                   required
                 />
               </div>
@@ -192,7 +238,7 @@ const AddProductPage = ({ userData }) => {
                 />
               </div>
 
-              <div className="md:col-span-2">
+              <div>
                 <label className="block text-sm font-medium text-blue-700 mb-2">
                   Category
                 </label>
@@ -211,6 +257,25 @@ const AddProductPage = ({ userData }) => {
                 </select>
               </div>
 
+              <div>
+                <label className="block text-sm font-medium text-blue-700 mb-2">
+                  Supplier
+                </label>
+                <select
+                  name="supplier_id"
+                  value={formData.supplier_id}
+                  onChange={handleInputChange}
+                  className="w-full px-4 py-3 border border-blue-300 rounded-xl focus:outline-none focus:ring-2 focus:ring-blue-500"
+                >
+                  <option value="">Select a supplier</option>
+                  {suppliers.map((supplier) => (
+                    <option key={supplier.id} value={supplier.id}>
+                      {supplier.nama}
+                    </option>
+                  ))}
+                </select>
+              </div>
+
               <div className="md:col-span-2">
                 <label className="block text-sm font-medium text-blue-700 mb-2">
                   Description
@@ -221,7 +286,7 @@ const AddProductPage = ({ userData }) => {
                   onChange={handleInputChange}
                   rows={4}
                   className="w-full px-4 py-3 border border-blue-300 rounded-xl focus:outline-none focus:ring-2 focus:ring-blue-500"
-                  placeholder="Enter product description (optional)"
+                  placeholder="Enter product description (e.g., Baju PDH HIMATIF - 2025)"
                 />
               </div>
             </div>

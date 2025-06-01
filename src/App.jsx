@@ -19,7 +19,11 @@ import AddProductPage from "./Pages/AddProductPage";
 import EditProductPage from "./Pages/EditProductPage";
 import ProfilePage from "./Pages/ProfilePage";
 import TransactionPage from "./Pages/TransactionPage";
+import TransactionDetailPage from "./Pages/TransactionDetailPage";
+import AddTransactionPage from "./Pages/AddTransactionPage";
+import EditTransactionPage from "./Pages/EditTransactionPage";
 import SupplierPage from "./Pages/SupplierPage";
+import AddSupplierPage from "./Pages/AddSupplierPage";
 import { useToast } from "./Component/Toast";
 import { FullPageLoading } from "./Component/Loading";
 import PageTransition from "./Component/PageTransition";
@@ -226,6 +230,24 @@ function App() {
           }
         />
 
+        {/* Product Detail Page */}
+        <Route
+          path="/products/:id"
+          element={
+            <ProtectedRoute isLoggedIn={isLoggedIn}>
+              <Layout
+                sidebarOpen={sidebarOpen}
+                setSidebarOpen={setSidebarOpen}
+                onNavigate={(page) => setHalamanAktif(page)}
+                halamanAktif="products"
+                userData={userData}
+              >
+                <ProductIdPage userData={userData} />
+              </Layout>
+            </ProtectedRoute>
+          }
+        />
+
         {/* Edit Product Page */}
         <Route
           path="/products/edit/:id"
@@ -334,6 +356,60 @@ function App() {
           }
         />
 
+        {/* Add Transaction Page */}
+        <Route
+          path="/transaksi/add"
+          element={
+            <ProtectedRoute isLoggedIn={isLoggedIn}>
+              <Layout
+                sidebarOpen={sidebarOpen}
+                setSidebarOpen={setSidebarOpen}
+                onNavigate={(page) => setHalamanAktif(page)}
+                halamanAktif="transaksi"
+                userData={userData}
+              >
+                <AddTransactionPage userData={userData} />
+              </Layout>
+            </ProtectedRoute>
+          }
+        />
+
+        {/* Edit Transaction Page */}
+        <Route
+          path="/transaksi/edit/:id"
+          element={
+            <ProtectedRoute isLoggedIn={isLoggedIn}>
+              <Layout
+                sidebarOpen={sidebarOpen}
+                setSidebarOpen={setSidebarOpen}
+                onNavigate={(page) => setHalamanAktif(page)}
+                halamanAktif="transaksi"
+                userData={userData}
+              >
+                <EditTransactionPage userData={userData} />
+              </Layout>
+            </ProtectedRoute>
+          }
+        />
+
+        {/* Transaction Detail Page */}
+        <Route
+          path="/transactions/:id"
+          element={
+            <ProtectedRoute isLoggedIn={isLoggedIn}>
+              <Layout
+                sidebarOpen={sidebarOpen}
+                setSidebarOpen={setSidebarOpen}
+                onNavigate={(page) => setHalamanAktif(page)}
+                halamanAktif="transaksi"
+                userData={userData}
+              >
+                <TransactionDetailPage userData={userData} />
+              </Layout>
+            </ProtectedRoute>
+          }
+        />
+
         {/* Supplier Page */}
         <Route
           path="/supplier"
@@ -347,6 +423,24 @@ function App() {
                 userData={userData}
               >
                 <SupplierPage userData={userData} />
+              </Layout>
+            </ProtectedRoute>
+          }
+        />
+
+        {/* Add Supplier Page */}
+        <Route
+          path="/suppliers/add"
+          element={
+            <ProtectedRoute isLoggedIn={isLoggedIn}>
+              <Layout
+                sidebarOpen={sidebarOpen}
+                setSidebarOpen={setSidebarOpen}
+                onNavigate={(page) => setHalamanAktif(page)}
+                halamanAktif="supplier"
+                userData={userData}
+              >
+                <AddSupplierPage userData={userData} />
               </Layout>
             </ProtectedRoute>
           }
@@ -393,7 +487,7 @@ function App() {
         </Routes>
       </PageTransition>
 
-          
+
     </Router>
   );
 }

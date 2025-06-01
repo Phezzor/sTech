@@ -1,0 +1,124 @@
+{
+  "example_product_format": {
+    "id": "PRD00000004",
+    "produk_kode": "PDH-001",
+    "nama": "Baju PDH HIMATIF",
+    "deskripsi": "Baju PDH HIMATIF - 2025",
+    "harga": "150000.00",
+    "stock": 100,
+    "category_id": "Baju",
+    "supplier_id": "SUP00000005",
+    "category_nama": "PDH HIMATIF",
+    "supplier_nama": "CV Jaya"
+  },
+  "test_data_examples": [
+    {
+      "id": "PRD00000001",
+      "produk_kode": "PDH-001",
+      "nama": "Baju PDH HIMATIF",
+      "deskripsi": "Baju PDH HIMATIF - 2025",
+      "harga": "150000.00",
+      "stock": 100,
+      "category_id": "CAT001",
+      "supplier_id": "SUP00000001",
+      "category_nama": "Pakaian",
+      "supplier_nama": "PT Maju Jaya"
+    },
+    {
+      "id": "PRD00000002",
+      "produk_kode": "LAP-001",
+      "nama": "Laptop Gaming ASUS",
+      "deskripsi": "Laptop Gaming ASUS ROG Strix - High Performance",
+      "harga": "15000000.00",
+      "stock": 25,
+      "category_id": "CAT002",
+      "supplier_id": "SUP00000002",
+      "category_nama": "Elektronik",
+      "supplier_nama": "CV Berkah Mandiri"
+    },
+    {
+      "id": "PRD00000003",
+      "produk_kode": "BUK-001",
+      "nama": "Buku Pemrograman Python",
+      "deskripsi": "Buku Panduan Lengkap Pemrograman Python untuk Pemula",
+      "harga": "125000.00",
+      "stock": 50,
+      "category_id": "CAT003",
+      "supplier_id": "SUP00000003",
+      "category_nama": "Buku",
+      "supplier_nama": "UD Sumber Rejeki"
+    },
+    {
+      "id": "PRD00000004",
+      "produk_kode": "MOU-001",
+      "nama": "Mouse Wireless Logitech",
+      "deskripsi": "Mouse Wireless Logitech MX Master 3 - Ergonomic Design",
+      "harga": "1250000.00",
+      "stock": 75,
+      "category_id": "CAT002",
+      "supplier_id": "SUP00000004",
+      "category_nama": "Elektronik",
+      "supplier_nama": "CV Jaya Bersama"
+    },
+    {
+      "id": "PRD00000005",
+      "produk_kode": "JAK-001",
+      "nama": "Jaket Hoodie HIMATIF",
+      "deskripsi": "Jaket Hoodie HIMATIF - Premium Quality Cotton",
+      "harga": "275000.00",
+      "stock": 40,
+      "category_id": "CAT001",
+      "supplier_id": "SUP00000005",
+      "category_nama": "Pakaian",
+      "supplier_nama": "PT Teknologi Maju"
+    }
+  ],
+  "form_validation": {
+    "required_fields": ["produk_kode", "nama", "harga", "stock"],
+    "optional_fields": ["deskripsi", "category_id", "supplier_id"],
+    "field_descriptions": {
+      "produk_kode": "Unique product code (e.g., PDH-001)",
+      "nama": "Product name (e.g., Baju PDH HIMATIF)",
+      "deskripsi": "Product description (e.g., Baju PDH HIMATIF - 2025)",
+      "harga": "Product price in IDR (numeric value)",
+      "stock": "Stock quantity (integer value)",
+      "category_id": "Category ID (optional)",
+      "supplier_id": "Supplier ID (optional)"
+    }
+  },
+  "display_fields": {
+    "table_columns": [
+      "Product (nama + id)",
+      "Code (produk_kode)",
+      "Category (category_nama or category_id)",
+      "Supplier (supplier_nama or 'No Supplier')",
+      "Price (harga formatted as IDR)",
+      "Stock (stock with color coding)",
+      "Actions (view/edit/delete)"
+    ],
+    "color_coding": {
+      "stock_high": "stock > 10 (green)",
+      "stock_medium": "stock 5-10 (yellow)",
+      "stock_low": "stock < 5 (red)"
+    }
+  },
+  "api_endpoints": {
+    "create_product": "POST https://stechno.up.railway.app/api/product",
+    "get_products": "GET https://stechno.up.railway.app/api/product",
+    "get_product_by_id": "GET https://stechno.up.railway.app/api/product/{id}",
+    "update_product": "PUT https://stechno.up.railway.app/api/product/{id}",
+    "delete_product": "DELETE https://stechno.up.railway.app/api/product/{id}"
+  },
+  "animated_messages": {
+    "success_add": "🎉 Product \"{nama}\" added successfully!",
+    "success_update": "✅ Product \"{nama}\" updated successfully!",
+    "success_delete": "🗑️ Product \"{nama}\" deleted successfully!",
+    "error_add": "❌ Failed to add product. Please try again.",
+    "error_update": "❌ Failed to update product. Please try again.",
+    "error_delete": "❌ Failed to delete product. Please try again.",
+    "info_loading": "Loading...",
+    "info_adding": "Adding product...",
+    "info_updating": "Updating product...",
+    "info_deleting": "Deleting product..."
+  }
+}

@@ -2,26 +2,35 @@ import React, { useState, useEffect } from "react";
 import { useParams, useNavigate } from "react-router-dom";
 import { FaSave, FaTimes, FaArrowLeft } from "react-icons/fa";
 import { useToast } from "../Component/Toast";
+import { useAnimatedMessage } from "../Component/AnimatedMessage";
 import { ButtonLoading, FullPageLoading } from "../Component/Loading";
 
 const EditProductPage = ({ userData }) => {
   const { id } = useParams();
   const navigate = useNavigate();
   const { showSuccess, showError, showInfo } = useToast();
+  const {
+    showSuccess: showAnimatedSuccess,
+    showError: showAnimatedError,
+    showInfo: showAnimatedInfo,
+    MessageContainer
+  } = useAnimatedMessage();
   const [loading, setLoading] = useState(false);
   const [pageLoading, setPageLoading] = useState(true);
   const [categories, setCategories] = useState([]);
+  const [suppliers, setSuppliers] = useState([]);
 
   // Check if user has admin role
   const isAdmin = userData?.role === 'admin' || userData?.role === 'administrator';
 
   const [formData, setFormData] = useState({
-    nama: "",
     produk_kode: "",
+    nama: "",
+    deskripsi: "",
     harga: "",
     stock: "",
     category_id: "",
-    deskripsi: ""
+    supplier_id: ""
   });
 
   useEffect(() => {
@@ -34,6 +43,7 @@ const EditProductPage = ({ userData }) => {
 
     fetchProductData();
     fetchCategories();
+    fetchSuppliers();
   }, [id, isAdmin, navigate]);
 
   const fetchProductData = async () => {
@@ -47,12 +57,13 @@ const EditProductPage = ({ userData }) => {
       if (response.ok) {
         const product = await response.json();
         setFormData({
-          nama: product.nama || "",
           produk_kode: product.produk_kode || "",
+          nama: product.nama || "",
+          deskripsi: product.deskripsi || "",
           harga: product.harga || "",
           stock: product.stock || "",
           category_id: product.category_id || "",
-          deskripsi: product.deskripsi || ""
+          supplier_id: product.supplier_id || ""
         });
       } else {
         throw new Error("Product not found");
@@ -82,6 +93,22 @@ const EditProductPage = ({ userData }) => {
     }
   };
 
+  const fetchSuppliers = async () => {
+    try {
+      const token = localStorage.getItem("token");
+      const response = await fetch("https://stechno.up.railway.app/api/suppliers", {
+        headers: { Authorization: `Bearer ${token}` }
+      });
+
+      if (response.ok) {
+        const data = await response.json();
+        setSuppliers(Array.isArray(data) ? data : []);
+      }
+    } catch (error) {
+      console.error("Error fetching suppliers:", error);
+    }
+  };
+
   const handleInputChange = (e) => {
     const { name, value } = e.target;
     setFormData(prev => ({
@@ -99,7 +126,7 @@ const EditProductPage = ({ userData }) => {
     }
 
     setLoading(true);
-    showInfo("Updating product...");
+    showAnimatedInfo("Updating product...");
 
     try {
       const token = localStorage.getItem("token");
@@ -110,24 +137,31 @@ const EditProductPage = ({ userData }) => {
           Authorization: `Bearer ${token}`
         },
         body: JSON.stringify({
-          ...formData,
+          produk_kode: formData.produk_kode,
+          nama: formData.nama,
+          deskripsi: formData.deskripsi,
           harga: parseFloat(formData.harga),
           stock: parseInt(formData.stock),
-          category_id: formData.category_id ? parseInt(formData.category_id) : null
+          category_id: formData.category_id || null,
+          supplier_id: formData.supplier_id || null
         })
       });
 
       if (response.ok) {
         const updatedProduct = await response.json();
-        showSuccess(`Product "${formData.nama}" updated successfully!`);
-        navigate("/products");
+        showAnimatedSuccess(`✅ Product "${formData.nama}" updated successfully!`);
+
+        // Navigate after a short delay to show the success message
+        setTimeout(() => {
+          navigate("/products");
+        }, 1500);
       } else {
         const errorData = await response.json();
         throw new Error(errorData.message || "Failed to update product");
       }
     } catch (error) {
       console.error("Error updating product:", error);
-      showError(error.message || "Failed to update product. Please try again.");
+      showAnimatedError(`❌ ${error.message || "Failed to update product. Please try again."}`);
     } finally {
       setLoading(false);
     }
@@ -143,6 +177,7 @@ const EditProductPage = ({ userData }) => {
 
   return (
     <div className="min-h-screen bg-gradient-to-br from-blue-50 via-blue-100 to-blue-200 p-6">
+      <MessageContainer />
       <div className="max-w-4xl mx-auto">
         {/* Header */}
         <div className="bg-white rounded-2xl shadow-xl p-6 mb-6 border border-blue-200">
@@ -168,21 +203,6 @@ const EditProductPage = ({ userData }) => {
             <div className="grid md:grid-cols-2 gap-6">
               <div>
                 <label className="block text-sm font-medium text-blue-700 mb-2">
-                  Product Name *
-                </label>
-                <input
-                  type="text"
-                  name="nama"
-                  value={formData.nama}
-                  onChange={handleInputChange}
-                  className="w-full px-4 py-3 border border-blue-300 rounded-xl focus:outline-none focus:ring-2 focus:ring-blue-500"
-                  placeholder="Enter product name"
-                  required
-                />
-              </div>
-
-              <div>
-                <label className="block text-sm font-medium text-blue-700 mb-2">
                   Product Code *
                 </label>
                 <input
@@ -191,7 +211,22 @@ const EditProductPage = ({ userData }) => {
                   value={formData.produk_kode}
                   onChange={handleInputChange}
                   className="w-full px-4 py-3 border border-blue-300 rounded-xl focus:outline-none focus:ring-2 focus:ring-blue-500"
-                  placeholder="Enter product code"
+                  placeholder="Enter product code (e.g., PDH-001)"
+                  required
+                />
+              </div>
+
+              <div>
+                <label className="block text-sm font-medium text-blue-700 mb-2">
+                  Product Name *
+                </label>
+                <input
+                  type="text"
+                  name="nama"
+                  value={formData.nama}
+                  onChange={handleInputChange}
+                  className="w-full px-4 py-3 border border-blue-300 rounded-xl focus:outline-none focus:ring-2 focus:ring-blue-500"
+                  placeholder="Enter product name (e.g., Baju PDH HIMATIF)"
                   required
                 />
               </div>
@@ -229,7 +264,7 @@ const EditProductPage = ({ userData }) => {
                 />
               </div>
 
-              <div className="md:col-span-2">
+              <div>
                 <label className="block text-sm font-medium text-blue-700 mb-2">
                   Category
                 </label>
@@ -248,6 +283,25 @@ const EditProductPage = ({ userData }) => {
                 </select>
               </div>
 
+              <div>
+                <label className="block text-sm font-medium text-blue-700 mb-2">
+                  Supplier
+                </label>
+                <select
+                  name="supplier_id"
+                  value={formData.supplier_id}
+                  onChange={handleInputChange}
+                  className="w-full px-4 py-3 border border-blue-300 rounded-xl focus:outline-none focus:ring-2 focus:ring-blue-500"
+                >
+                  <option value="">Select a supplier</option>
+                  {suppliers.map((supplier) => (
+                    <option key={supplier.id} value={supplier.id}>
+                      {supplier.nama}
+                    </option>
+                  ))}
+                </select>
+              </div>
+
               <div className="md:col-span-2">
                 <label className="block text-sm font-medium text-blue-700 mb-2">
                   Description
@@ -258,7 +312,7 @@ const EditProductPage = ({ userData }) => {
                   onChange={handleInputChange}
                   rows={4}
                   className="w-full px-4 py-3 border border-blue-300 rounded-xl focus:outline-none focus:ring-2 focus:ring-blue-500"
-                  placeholder="Enter product description (optional)"
+                  placeholder="Enter product description (e.g., Baju PDH HIMATIF - 2025)"
                 />
               </div>
             </div>

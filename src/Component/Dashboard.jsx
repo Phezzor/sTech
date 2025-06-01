@@ -42,7 +42,7 @@ function Dashboard({ userData }) {
         }
 
         // Fetch suppliers
-        const supplierResponse = await fetch("https://stechno.up.railway.app/api/supplier", {
+        const supplierResponse = await fetch("https://stechno.up.railway.app/api/suppliers", {
           headers: { Authorization: `Bearer ${token}` }
         });
 
@@ -225,7 +225,7 @@ function Dashboard({ userData }) {
         {/* Charts and Analytics */}
         <div className="grid grid-cols-1 lg:grid-cols-2 gap-8">
           {/* Weekly Sales Chart */}
-          <div className="bg-white rounded-2xl shadow-xl p-6 border border-blue-200">
+          {/* <div className="bg-white rounded-2xl shadow-xl p-6 border border-blue-200">
             <h3 className="text-xl font-semibold text-blue-800 mb-6">Weekly Sales</h3>
             <div className="h-64 flex items-end space-x-3">
               {penjualanMingguan.map((data, index) => (
@@ -243,10 +243,10 @@ function Dashboard({ userData }) {
                 </div>
               ))}
             </div>
-          </div>
+          </div> */}
 
           {/* Low Stock Alert */}
-          <div className="bg-white rounded-2xl shadow-xl p-6 border border-blue-200">
+          {/* <div className="bg-white rounded-2xl shadow-xl p-6 border border-blue-200">
             <h3 className="text-xl font-semibold text-blue-800 mb-6">Low Stock Alert</h3>
             <div className="space-y-4 max-h-64 overflow-y-auto">
               {lowStockProducts.length > 0 ? (
@@ -274,7 +274,7 @@ function Dashboard({ userData }) {
                 </div>
               )}
             </div>
-          </div>
+          </div> */}
         </div>
 
         {/* Recent Products */}

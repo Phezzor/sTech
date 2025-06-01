@@ -2,11 +2,18 @@ import React, { useState, useEffect } from "react";
 import { useNavigate } from "react-router-dom";
 import { FaPlus, FaFilter, FaFileExport, FaEye, FaEdit, FaTrash, FaSearch, FaChevronLeft, FaChevronRight } from "react-icons/fa";
 import { useToast } from "../Component/Toast";
+import { useAnimatedMessage } from "../Component/AnimatedMessage";
 import { TableSkeleton, LoadingOverlay, ButtonLoading } from "../Component/Loading";
 
 const TransactionPage = ({ userData }) => {
   const navigate = useNavigate();
   const { showSuccess, showError, showInfo } = useToast();
+  const {
+    showSuccess: showAnimatedSuccess,
+    showError: showAnimatedError,
+    showInfo: showAnimatedInfo,
+    MessageContainer
+  } = useAnimatedMessage();
 
   // Check if user has admin role
   const isAdmin = userData?.role === 'admin' || userData?.role === 'administrator';
@@ -37,24 +44,38 @@ const TransactionPage = ({ userData }) => {
     try {
       setLoading(true);
       const token = localStorage.getItem("token");
+      console.log("Fetching transactions with token:", token);
 
-      // Build query parameters
-      const params = new URLSearchParams({
-        page: currentPage,
-        limit: itemsPerPage,
-        sort: sortBy,
-        order: sortOrder
-      });
+      // Try different API endpoints
+      const endpoints = [
+        "https://stechno.up.railway.app/api/transaksi",
+        "https://stechno.up.railway.app/api/transactions",
+        "https://stechno.up.railway.app/api/transaction"
+      ];
 
-      if (searchTerm) params.append('search', searchTerm);
-      if (statusFilter) params.append('status', statusFilter);
+      let response;
+      let endpoint;
 
-      const response = await fetch(`https://stechno.up.railway.app/api/transaksi?${params}`, {
-        headers: { Authorization: `Bearer ${token}` }
-      });
+      for (const url of endpoints) {
+        try {
+          console.log("Trying endpoint:", url);
+          response = await fetch(url, {
+            headers: { Authorization: `Bearer ${token}` }
+          });
 
-      if (response.ok) {
+          if (response.ok) {
+            endpoint = url;
+            break;
+          }
+        } catch (e) {
+          console.log("Endpoint failed:", url, e.message);
+          continue;
+        }
+      }
+
+      if (response && response.ok) {
         const data = await response.json();
+        console.log("Transaction data received:", data);
 
         // Handle different API response formats
         if (data.data && Array.isArray(data.data)) {
@@ -69,13 +90,14 @@ const TransactionPage = ({ userData }) => {
           setTransactions([]);
         }
         setError(null);
+        console.log("Transactions loaded successfully from:", endpoint);
       } else {
-        throw new Error("Failed to fetch transactions");
+        throw new Error(`Failed to fetch transactions from all endpoints. Last status: ${response?.status}`);
       }
     } catch (err) {
       console.error("Error fetching transactions:", err);
       setError("Failed to load transactions. Please try again.");
-      showError("Failed to load transactions");
+      showError("Failed to load transactions: " + err.message);
       setTransactions([]);
     } finally {
       setLoading(false);
@@ -106,17 +128,17 @@ const TransactionPage = ({ userData }) => {
 
   const handleDeleteTransaction = async (transactionId, transactionInfo) => {
     if (!isAdmin) {
-      showError("Access denied. Only administrators can delete transactions.");
+      showAnimatedError("Access denied. Only administrators can delete transactions.");
       return;
     }
 
-    if (!window.confirm(`Are you sure you want to delete transaction #${transactionId}? This action cannot be undone.`)) {
+    if (!window.confirm(`Are you sure you want to delete transaction ${transactionId}? This action cannot be undone.`)) {
       return;
     }
 
     try {
       setDeleteLoading(transactionId);
-      showInfo("Deleting transaction...");
+      showAnimatedInfo("Deleting transaction...");
 
       const token = localStorage.getItem("token");
       const response = await fetch(`https://stechno.up.railway.app/api/transaksi/${transactionId}`, {
@@ -127,7 +149,7 @@ const TransactionPage = ({ userData }) => {
       });
 
       if (response.ok) {
-        showSuccess(`Transaction #${transactionId} deleted successfully!`);
+        showAnimatedSuccess(`🗑️ Transaction ${transactionId} deleted successfully!`);
         fetchTransactions(); // Refresh the list
       } else {
         const errorData = await response.json();
@@ -135,7 +157,7 @@ const TransactionPage = ({ userData }) => {
       }
     } catch (error) {
       console.error("Delete error:", error);
-      showError(error.message || "Failed to delete transaction. Please try again.");
+      showAnimatedError(`❌ ${error.message || "Failed to delete transaction. Please try again."}`);
     } finally {
       setDeleteLoading(null);
     }
@@ -187,6 +209,7 @@ const TransactionPage = ({ userData }) => {
 
   return (
     <div className="min-h-screen bg-gradient-to-br from-blue-50 via-blue-100 to-blue-200 p-6">
+      <MessageContainer />
       <div className="max-w-7xl mx-auto">
         {/* Header */}
         <div className="bg-white rounded-2xl shadow-xl p-6 mb-6 border border-blue-200">
@@ -210,7 +233,7 @@ const TransactionPage = ({ userData }) => {
 
               {isAdmin && (
                 <button
-                  onClick={() => navigate("/transactions/add")}
+                  onClick={() => navigate("/transaksi/add")}
                   className="flex items-center gap-2 px-6 py-2 bg-gradient-to-r from-blue-500 to-blue-600 text-white rounded-xl hover:from-blue-600 hover:to-blue-700 transition-all duration-200 shadow-lg hover:shadow-xl"
                 >
                   <FaPlus /> Add Transaction
@@ -241,10 +264,9 @@ const TransactionPage = ({ userData }) => {
                 onChange={handleStatusFilter}
                 className="w-full pl-10 pr-4 py-3 border border-blue-300 rounded-xl focus:outline-none focus:ring-2 focus:ring-blue-500 appearance-none"
               >
-                <option value="">All Status</option>
-                <option value="completed">Completed</option>
-                <option value="pending">Pending</option>
-                <option value="cancelled">Cancelled</option>
+                <option value="">All Types</option>
+                <option value="IN">Stock In</option>
+                <option value="OUT">Stock Out</option>
               </select>
             </div>
 
@@ -253,10 +275,10 @@ const TransactionPage = ({ userData }) => {
               onChange={(e) => handleSort(e.target.value)}
               className="px-4 py-3 border border-blue-300 rounded-xl focus:outline-none focus:ring-2 focus:ring-blue-500"
             >
-              <option value="tanggal">Sort by Date</option>
-              <option value="total">Sort by Total</option>
-              <option value="pelanggan">Sort by Customer</option>
-              <option value="status">Sort by Status</option>
+              <option value="created_at">Sort by Date</option>
+              <option value="type">Sort by Type</option>
+              <option value="user_id">Sort by User</option>
+              <option value="id">Sort by ID</option>
             </select>
 
             <button
@@ -283,10 +305,10 @@ const TransactionPage = ({ userData }) => {
                   <thead>
                     <tr className="bg-gradient-to-r from-blue-50 to-blue-100 text-blue-800 text-sm">
                       <th className="py-4 px-6 text-left border-b border-blue-200 font-semibold">Transaction ID</th>
+                      <th className="py-4 px-6 text-left border-b border-blue-200 font-semibold">User</th>
+                      <th className="py-4 px-6 text-left border-b border-blue-200 font-semibold">Type</th>
+                      <th className="py-4 px-6 text-left border-b border-blue-200 font-semibold">Description</th>
                       <th className="py-4 px-6 text-left border-b border-blue-200 font-semibold">Date</th>
-                      <th className="py-4 px-6 text-left border-b border-blue-200 font-semibold">Customer</th>
-                      <th className="py-4 px-6 text-left border-b border-blue-200 font-semibold">Total</th>
-                      <th className="py-4 px-6 text-left border-b border-blue-200 font-semibold">Status</th>
                       <th className="py-4 px-6 text-left border-b border-blue-200 font-semibold">Actions</th>
                     </tr>
                   </thead>
@@ -296,41 +318,51 @@ const TransactionPage = ({ userData }) => {
                         <tr key={transaction.id} className="border-b border-blue-100 hover:bg-gradient-to-r hover:from-blue-50 hover:to-blue-100 transition-all duration-200">
                           <td className="py-4 px-6">
                             <span className="px-3 py-1 bg-blue-100 text-blue-700 rounded-lg text-sm font-mono font-medium">
-                              #{transaction.id}
+                              {transaction.id}
                             </span>
                           </td>
                           <td className="py-4 px-6">
-                            <span className="text-blue-800">{formatDate(transaction.tanggal || new Date())}</span>
-                          </td>
-                          <td className="py-4 px-6">
-                            <span className="font-medium text-blue-800">{transaction.pelanggan || 'Walk-in Customer'}</span>
-                          </td>
-                          <td className="py-4 px-6">
-                            <span className="font-semibold text-green-600">Rp {formatPrice(transaction.total || 0)}</span>
+                            <span className="font-medium text-blue-800">{transaction.user_id || 'Unknown User'}</span>
                           </td>
                           <td className="py-4 px-6">
                             <span className={`px-3 py-1 rounded-lg text-xs font-medium ${
-                              transaction.status === 'completed'
+                              transaction.type === 'IN'
                                 ? 'bg-green-100 text-green-800'
-                                : transaction.status === 'pending'
-                                ? 'bg-yellow-100 text-yellow-800'
-                                : 'bg-red-100 text-red-800'
+                                : transaction.type === 'OUT'
+                                ? 'bg-red-100 text-red-800'
+                                : 'bg-gray-100 text-gray-800'
                             }`}>
-                              {transaction.status === 'completed' ? 'Completed' :
-                               transaction.status === 'pending' ? 'Pending' : 'Cancelled'}
+                              {transaction.type === 'IN' ? 'IN' :
+                               transaction.type === 'OUT' ? 'OUT' : transaction.type}
                             </span>
+                          </td>
+                          <td className="py-4 px-6">
+                            <span className="text-blue-800 text-sm">
+                              {transaction.description ?
+                                (transaction.description.length > 50 ?
+                                  transaction.description.substring(0, 50) + '...' :
+                                  transaction.description
+                                ) :
+                                'No description'
+                              }
+                            </span>
+                          </td>
+                          <td className="py-4 px-6">
+                            <span className="text-blue-800">{formatDate(transaction.created_at || new Date())}</span>
                           </td>
                           <td className="py-4 px-6">
                             <div className="flex items-center gap-2">
                               <button
+                                onClick={() => navigate(`/transactions/${transaction.id}`)}
                                 className="p-2 text-blue-600 hover:text-blue-800 hover:bg-blue-50 rounded-lg transition-all duration-200"
                                 title="View Details"
                               >
                                 <FaEye />
                               </button>
+
                               {isAdmin && (
                                 <button
-                                  onClick={() => navigate(`/transactions/edit/${transaction.id}`)}
+                                  onClick={() => navigate(`/transaksi/edit/${transaction.id}`)}
                                   className="p-2 text-green-600 hover:text-green-800 hover:bg-green-50 rounded-lg transition-all duration-200"
                                   title="Edit Transaction"
                                 >

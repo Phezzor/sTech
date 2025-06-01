@@ -2,11 +2,18 @@ import React, { useState, useEffect } from "react";
 import { useNavigate } from "react-router-dom";
 import { FaPlus, FaEdit, FaTrash, FaSearch, FaFilter, FaChevronLeft, FaChevronRight, FaEye } from "react-icons/fa";
 import { useToast } from "../Component/Toast";
+import { useAnimatedMessage } from "../Component/AnimatedMessage";
 import { ButtonLoading, FullPageLoading } from "../Component/Loading";
 
 function ProductPage({ userData }) {
   const navigate = useNavigate();
   const { showSuccess, showError, showInfo } = useToast();
+  const {
+    showSuccess: showAnimatedSuccess,
+    showError: showAnimatedError,
+    showInfo: showAnimatedInfo,
+    MessageContainer
+  } = useAnimatedMessage();
 
   // Check if user has admin role
   const isAdmin = userData?.role === 'admin' || userData?.role === 'administrator';
@@ -28,6 +35,7 @@ function ProductPage({ userData }) {
   const [selectedCategory, setSelectedCategory] = useState("");
   const [sortBy, setSortBy] = useState("nama");
   const [sortOrder, setSortOrder] = useState("asc");
+  const [searchTimeout, setSearchTimeout] = useState(null);
 
   useEffect(() => {
     fetchProducts();
@@ -99,7 +107,7 @@ function ProductPage({ userData }) {
 
   const handleDelete = async (productId, productName) => {
     if (!isAdmin) {
-      showError("Access denied. Only administrators can delete products.");
+      showAnimatedError("Access denied. Only administrators can delete products.");
       return;
     }
 
@@ -109,7 +117,7 @@ function ProductPage({ userData }) {
 
     try {
       setDeleteLoading(productId);
-      showInfo("Deleting product...");
+      showAnimatedInfo("Deleting product...");
 
       const token = localStorage.getItem("token");
       const response = await fetch(`https://stechno.up.railway.app/api/product/${productId}`, {
@@ -118,7 +126,7 @@ function ProductPage({ userData }) {
       });
 
       if (response.ok) {
-        showSuccess(`Product "${productName}" deleted successfully!`);
+        showAnimatedSuccess(`🗑️ Product "${productName}" deleted successfully!`);
         fetchProducts(); // Refresh the list
       } else {
         const errorData = await response.json();
@@ -126,7 +134,7 @@ function ProductPage({ userData }) {
       }
     } catch (error) {
       console.error("Error deleting product:", error);
-      showError(error.message || "Failed to delete product. Please try again.");
+      showAnimatedError(`❌ ${error.message || "Failed to delete product. Please try again."}`);
     } finally {
       setDeleteLoading(null);
     }
@@ -139,9 +147,23 @@ function ProductPage({ userData }) {
   };
 
   const handleSearch = (e) => {
-    setSearchTerm(e.target.value);
+    const value = e.target.value;
+    setSearchTerm(value);
     setCurrentPage(1); // Reset to first page when searching
+
+    // Debounce search to avoid too many API calls
+    if (searchTimeout) {
+      clearTimeout(searchTimeout);
+    }
+
+    const timeout = setTimeout(() => {
+      console.log("Searching for:", value);
+    }, 300);
+
+    setSearchTimeout(timeout);
   };
+
+
 
   const handleCategoryFilter = (e) => {
     setSelectedCategory(e.target.value);
@@ -176,6 +198,7 @@ function ProductPage({ userData }) {
 
   return (
     <div className="min-h-screen bg-gradient-to-br from-blue-50 via-blue-100 to-blue-200 p-6">
+      <MessageContainer />
       <div className="max-w-7xl mx-auto">
         {/* Header */}
         <div className="bg-white rounded-2xl shadow-xl p-6 mb-6 border border-blue-200">
@@ -259,6 +282,7 @@ function ProductPage({ userData }) {
                   <th className="px-6 py-4 text-left font-semibold">Product</th>
                   <th className="px-6 py-4 text-left font-semibold">Code</th>
                   <th className="px-6 py-4 text-left font-semibold">Category</th>
+                  <th className="px-6 py-4 text-left font-semibold">Supplier</th>
                   <th className="px-6 py-4 text-left font-semibold">Price</th>
                   <th className="px-6 py-4 text-left font-semibold">Stock</th>
                   <th className="px-6 py-4 text-center font-semibold">Actions</th>
@@ -267,7 +291,7 @@ function ProductPage({ userData }) {
               <tbody>
                 {loading ? (
                   <tr>
-                    <td colSpan="6" className="px-6 py-12 text-center">
+                    <td colSpan="7" className="px-6 py-12 text-center">
                       <div className="flex items-center justify-center">
                         <div className="animate-spin rounded-full h-8 w-8 border-b-2 border-blue-600"></div>
                         <span className="ml-2 text-blue-600">Loading...</span>
@@ -276,7 +300,7 @@ function ProductPage({ userData }) {
                   </tr>
                 ) : products.length === 0 ? (
                   <tr>
-                    <td colSpan="6" className="px-6 py-12 text-center text-blue-600">
+                    <td colSpan="7" className="px-6 py-12 text-center text-blue-600">
                       No products found. {isAdmin && "Click 'Add Product' to get started."}
                     </td>
                   </tr>
@@ -294,7 +318,12 @@ function ProductPage({ userData }) {
                         </div>
                       </td>
                       <td className="px-6 py-4 text-blue-700 font-mono">{product.produk_kode}</td>
-                      <td className="px-6 py-4 text-blue-600">{getCategoryName(product.category_id)}</td>
+                      <td className="px-6 py-4 text-blue-600">
+                        {product.category_nama || getCategoryName(product.category_id)}
+                      </td>
+                      <td className="px-6 py-4 text-blue-600">
+                        {product.supplier_nama || 'No Supplier'}
+                      </td>
                       <td className="px-6 py-4 text-blue-800 font-semibold">{formatPrice(product.harga)}</td>
                       <td className="px-6 py-4">
                         <span className={`px-3 py-1 rounded-full text-sm font-medium ${

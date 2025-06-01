@@ -7,45 +7,45 @@ function Help() {
   const [expandedFaq, setExpandedFaq] = useState(null);
 
   const categories = [
-    { id: "getting-started", label: "Getting Started", icon: FaBook },
-    { id: "products", label: "Product Management", icon: FaQuestionCircle },
-    { id: "transactions", label: "Transactions", icon: FaQuestionCircle },
-    { id: "suppliers", label: "Suppliers", icon: FaQuestionCircle },
-    { id: "account", label: "Account & Settings", icon: FaQuestionCircle },
-    { id: "troubleshooting", label: "Troubleshooting", icon: FaQuestionCircle }
+    { id: "getting-started", label: "Memulai", icon: FaBook },
+    { id: "products", label: "Manajemen Produk", icon: FaQuestionCircle },
+    { id: "transactions", label: "Transaksi", icon: FaQuestionCircle },
+    { id: "suppliers", label: "Supplier", icon: FaQuestionCircle },
+    { id: "account", label: "Akun & Pengaturan", icon: FaQuestionCircle },
+    { id: "troubleshooting", label: "Pemecahan Masalah", icon: FaQuestionCircle }
   ];
 
   const faqs = {
     "getting-started": [
       {
-        question: "How do I get started with sTechno?",
-        answer: "Welcome to sTechno! Start by logging in with your credentials, then explore the dashboard to see your inventory overview. You can add products, manage suppliers, and track transactions from the main navigation menu."
+        question: "Bagaimana cara memulai menggunakan sTechno?",
+        answer: "Selamat datang di sTechno! Mulai dengan login menggunakan kredensial Anda, kemudian jelajahi dashboard untuk melihat ringkasan inventaris. Anda dapat menambah produk, mengelola supplier, dan melacak transaksi dari menu navigasi utama."
       },
       {
-        question: "What are the main features of sTechno?",
-        answer: "sTechno offers comprehensive inventory management including product catalog management, supplier relationship management, transaction tracking, real-time stock monitoring, and detailed reporting."
+        question: "Apa saja fitur utama sTechno?",
+        answer: "sTechno menawarkan manajemen inventaris yang komprehensif termasuk manajemen katalog produk, manajemen hubungan supplier, pelacakan transaksi, monitoring stok real-time, dan pelaporan detail."
       },
       {
-        question: "How do I navigate the interface?",
-        answer: "Use the sidebar navigation to access different modules. The dashboard provides an overview, while specific sections like Products, Suppliers, and Transactions have their own dedicated pages with full CRUD functionality."
+        question: "Bagaimana cara navigasi di interface?",
+        answer: "Gunakan navigasi sidebar untuk mengakses modul yang berbeda. Dashboard menyediakan ringkasan, sedangkan bagian khusus seperti Produk, Supplier, dan Transaksi memiliki halaman khusus dengan fungsi CRUD lengkap."
       }
     ],
     "products": [
       {
-        question: "How do I add a new product?",
-        answer: "Go to the Products page and click the 'Add Product' button. Fill in the product details including name, code, price, stock quantity, and category. Click 'Save' to add the product to your inventory."
+        question: "Bagaimana cara menambah produk baru?",
+        answer: "Buka halaman Produk dan klik tombol 'Tambah Produk'. Isi detail produk termasuk nama, kode, harga, jumlah stok, dan kategori. Klik 'Simpan' untuk menambahkan produk ke inventaris Anda."
       },
       {
-        question: "How do I search for products?",
-        answer: "Use the search bar on the Products page. You can search by product name, product code, or ID. You can also filter products by category using the filter dropdown."
+        question: "Bagaimana cara mencari produk?",
+        answer: "Gunakan kolom pencarian di halaman Produk. Anda dapat mencari berdasarkan nama produk, kode produk, atau ID. Anda juga dapat memfilter produk berdasarkan kategori menggunakan dropdown filter."
       },
       {
-        question: "How do I update product information?",
-        answer: "On the Products page, click the edit icon next to the product you want to modify. Update the necessary fields and click 'Save' to apply changes."
+        question: "Bagaimana cara mengupdate informasi produk?",
+        answer: "Di halaman Produk, klik ikon edit di sebelah produk yang ingin Anda ubah. Update field yang diperlukan dan klik 'Simpan' untuk menerapkan perubahan."
       },
       {
-        question: "How do I delete a product?",
-        answer: "Click the delete icon next to the product you want to remove. Confirm the deletion in the popup dialog. Note: This action cannot be undone."
+        question: "Bagaimana cara menghapus produk?",
+        answer: "Klik ikon hapus di sebelah produk yang ingin Anda hapus. Konfirmasi penghapusan di dialog popup. Catatan: Tindakan ini tidak dapat dibatalkan."
       }
     ],
     "transactions": [
@@ -117,9 +117,9 @@ function Help() {
         {/* Header */}
         <div className="bg-white rounded-2xl shadow-xl p-6 mb-6 border border-blue-200">
           <h1 className="text-3xl font-bold bg-gradient-to-r from-blue-600 to-blue-800 bg-clip-text text-transparent">
-            Help & Support
+            Bantuan & Dukungan
           </h1>
-          <p className="text-blue-600 mt-2">Find answers to common questions and get help with sTechno</p>
+          <p className="text-blue-600 mt-2">Temukan jawaban untuk pertanyaan umum dan dapatkan bantuan dengan sTechno</p>
         </div>
 
         {/* Search Bar */}
@@ -128,7 +128,7 @@ function Help() {
             <FaSearch className="absolute left-3 top-1/2 transform -translate-y-1/2 text-blue-400" />
             <input
               type="text"
-              placeholder="Search for help topics..."
+              placeholder="Cari topik bantuan..."
               value={searchTerm}
               onChange={(e) => setSearchTerm(e.target.value)}
               className="w-full pl-10 pr-4 py-3 border border-blue-300 rounded-xl focus:outline-none focus:ring-2 focus:ring-blue-500"
@@ -140,7 +140,7 @@ function Help() {
           {/* Categories Sidebar */}
           <div className="lg:col-span-1">
             <div className="bg-white rounded-2xl shadow-xl p-4 border border-blue-200">
-              <h3 className="text-lg font-semibold text-blue-800 mb-4">Categories</h3>
+              <h3 className="text-lg font-semibold text-blue-800 mb-4">Kategori</h3>
               <nav className="space-y-2">
                 {categories.map((category) => {
                   const Icon = category.icon;

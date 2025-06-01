@@ -38,25 +38,62 @@ const ProfilePage = ({ userData }) => {
     try {
       setSaving(true);
       showInfo("Updating profile...");
-      
-      const token = localStorage.getItem("token");
-      const response = await fetch("https://stechno.up.railway.app/api/user/profile", {
-        method: "PUT",
-        headers: {
-          "Content-Type": "application/json",
-          Authorization: `Bearer ${token}`,
-        },
-        body: JSON.stringify(formData),
-      });
 
-      if (response.ok) {
+      console.log("Updating profile with data:", formData);
+
+      const token = localStorage.getItem("token");
+      console.log("Token:", token);
+
+      // Try different API endpoints for profile update
+      const endpoints = [
+        
+        `https://stechno.up.railway.app/api/users/${formData.id}`
+      ];
+
+      let response;
+      let endpoint;
+
+      for (const url of endpoints) {
+        try {
+          console.log("Trying endpoint:", url);
+          response = await fetch(url, {
+            method: "PUT",
+            headers: {
+              "Content-Type": "application/json",
+              Authorization: `Bearer ${token}`,
+            },
+            body: JSON.stringify({
+              username: formData.username,
+              email: formData.email
+            }),
+          });
+
+          console.log("Response status:", response.status);
+
+          if (response.ok) {
+            endpoint = url;
+            break;
+          } else {
+            const errorData = await response.json();
+            console.log("Error from", url, ":", errorData);
+          }
+        } catch (e) {
+          console.log("Endpoint failed:", url, e.message);
+          continue;
+        }
+      }
+
+      if (response && response.ok) {
+        const result = await response.json();
+        console.log("Profile updated successfully:", result);
         showSuccess("Profile updated successfully!");
         setIsEditing(false);
       } else {
-        throw new Error("Failed to update profile");
+        throw new Error(`Failed to update profile from all endpoints. Last status: ${response?.status}`);
       }
     } catch (err) {
-      showError("Failed to update profile. Please try again.");
+      console.error("Error updating profile:", err);
+      showError("Failed to update profile: " + err.message);
     } finally {
       setSaving(false);
     }

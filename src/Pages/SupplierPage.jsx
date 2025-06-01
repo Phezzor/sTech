@@ -36,44 +36,65 @@ const SupplierPage = ({ userData }) => {
     try {
       setLoading(true);
       const token = localStorage.getItem("token");
+      console.log("Fetching suppliers with token:", token);
 
-      // Build query parameters
-      const params = new URLSearchParams({
-        page: currentPage,
-        limit: itemsPerPage,
-        sort: sortBy,
-        order: sortOrder
-      });
-
-      if (searchTerm) params.append('search', searchTerm);
-
-      const response = await fetch(`https://stechno.up.railway.app/api/suppliers?${params}`, {
+      // Simple fetch without complex query params for now
+      const response = await fetch("https://stechno.up.railway.app/api/suppliers", {
         headers: { Authorization: `Bearer ${token}` }
       });
 
+      console.log("Suppliers response status:", response.status);
+
       if (response.ok) {
         const data = await response.json();
+        console.log("Suppliers data received:", data);
 
         // Handle different API response formats
+        let suppliersData = [];
         if (data.data && Array.isArray(data.data)) {
-          setSuppliers(data.data);
+          suppliersData = data.data;
           setTotalPages(data.totalPages || Math.ceil(data.total / itemsPerPage));
           setTotalSuppliers(data.total || data.data.length);
         } else if (Array.isArray(data)) {
-          setSuppliers(data);
+          suppliersData = data;
           setTotalPages(Math.ceil(data.length / itemsPerPage));
           setTotalSuppliers(data.length);
         } else {
-          setSuppliers([]);
+          suppliersData = [];
         }
+
+        // Apply client-side filtering if search term exists
+        if (searchTerm) {
+          suppliersData = suppliersData.filter(supplier =>
+            supplier.nama?.toLowerCase().includes(searchTerm.toLowerCase()) ||
+            supplier.contact_info?.toLowerCase().includes(searchTerm.toLowerCase()) ||
+            supplier.address?.toLowerCase().includes(searchTerm.toLowerCase()) ||
+            supplier.id?.toLowerCase().includes(searchTerm.toLowerCase())
+          );
+        }
+
+        // Apply client-side sorting
+        suppliersData.sort((a, b) => {
+          const aValue = a[sortBy] || '';
+          const bValue = b[sortBy] || '';
+
+          if (sortOrder === 'asc') {
+            return aValue.toString().localeCompare(bValue.toString());
+          } else {
+            return bValue.toString().localeCompare(aValue.toString());
+          }
+        });
+
+        setSuppliers(suppliersData);
         setError(null);
+        console.log("Suppliers loaded successfully:", suppliersData.length);
       } else {
-        throw new Error("Failed to fetch suppliers");
+        throw new Error(`Failed to fetch suppliers. Status: ${response.status}`);
       }
     } catch (err) {
       console.error("Error fetching suppliers:", err);
       setError("Failed to load suppliers. Please try again.");
-      showError("Failed to load suppliers");
+      showError("Failed to load suppliers: " + err.message);
       setSuppliers([]);
     } finally {
       setLoading(false);
@@ -215,7 +236,8 @@ const SupplierPage = ({ userData }) => {
               className="px-4 py-3 border border-blue-300 rounded-xl focus:outline-none focus:ring-2 focus:ring-blue-500"
             >
               <option value="nama">Sort by Name</option>
-              <option value="email">Sort by Email</option>
+              <option value="contact_info">Sort by Email</option>
+              <option value="address">Sort by Address</option>
               <option value="created_at">Sort by Date</option>
             </select>
 
@@ -244,8 +266,8 @@ const SupplierPage = ({ userData }) => {
                     <tr className="bg-gradient-to-r from-blue-50 to-blue-100 text-blue-800 text-sm">
                       <th className="py-4 px-6 text-left border-b border-blue-200 font-semibold">Supplier</th>
                       <th className="py-4 px-6 text-left border-b border-blue-200 font-semibold">Email</th>
-                      <th className="py-4 px-6 text-left border-b border-blue-200 font-semibold">Email</th>
                       <th className="py-4 px-6 text-left border-b border-blue-200 font-semibold">Address</th>
+                      <th className="py-4 px-6 text-left border-b border-blue-200 font-semibold">Created Date</th>
                       <th className="py-4 px-6 text-left border-b border-blue-200 font-semibold">Status</th>
                       <th className="py-4 px-6 text-left border-b border-blue-200 font-semibold">Actions</th>
                     </tr>
@@ -266,7 +288,7 @@ const SupplierPage = ({ userData }) => {
                           <td className="py-4 px-6">
                             {supplier.contact_info ? (
                               <div className="flex items-center gap-2">
-                                <FaPhone className="text-blue-500 text-sm" />
+                                <FaEnvelope className="text-blue-500 text-sm" />
                                 <span className="text-blue-800">{supplier.contact_info}</span>
                               </div>
                             ) : (
@@ -274,23 +296,22 @@ const SupplierPage = ({ userData }) => {
                             )}
                           </td>
                           <td className="py-4 px-6">
-                            {supplier.email ? (
-                              <div className="flex items-center gap-2">
-                                <FaEnvelope className="text-blue-500 text-sm" />
-                                <span className="text-blue-800">{supplier.email}</span>
-                              </div>
-                            ) : (
-                              <span className="text-gray-400">No email</span>
-                            )}
-                          </td>
-                          <td className="py-4 px-6">
-                            {supplier.alamat ? (
+                            {supplier.address ? (
                               <div className="flex items-center gap-2">
                                 <FaMapMarkerAlt className="text-blue-500 text-sm" />
-                                <span className="text-blue-800 text-sm">{supplier.alamat.substring(0, 30)}...</span>
+                                <span className="text-blue-800 text-sm">{supplier.address.length > 30 ? supplier.address.substring(0, 30) + '...' : supplier.address}</span>
                               </div>
                             ) : (
                               <span className="text-gray-400">No address</span>
+                            )}
+                          </td>
+                          <td className="py-4 px-6">
+                            {supplier.created_at ? (
+                              <span className="text-blue-800 text-sm">
+                                {new Date(supplier.created_at).toLocaleDateString('id-ID')}
+                              </span>
+                            ) : (
+                              <span className="text-gray-400">-</span>
                             )}
                           </td>
                           <td className="py-4 px-6">
