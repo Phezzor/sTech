@@ -1,4 +1,4 @@
-import { useState, useEffect } from "react";
+import { useState, useEffect, useCallback } from "react";
 import {
   BrowserRouter as Router,
   Routes,
@@ -23,6 +23,7 @@ import TransactionDetailPage from "./Pages/TransactionDetailPage";
 import AddTransactionPage from "./Pages/AddTransactionPage";
 import EditTransactionPage from "./Pages/EditTransactionPage";
 import SupplierPage from "./Pages/SupplierPage";
+import SupplierDetailPage from "./Pages/SupplierDetailPage";
 import AddSupplierPage from "./Pages/AddSupplierPage";
 import EditSupplierPage from "./Pages/EditSupplierPage";
 import { useToast } from "./Component/Toast";
@@ -37,21 +38,29 @@ function ProtectedRoute({ isLoggedIn, children }) {
 
 // Layout dengan Sidebar dan Topbar
 function Layout({ children, sidebarOpen, setSidebarOpen, onNavigate, halamanAktif, userData }) {
+  const toggleSidebar = () => {
+    setSidebarOpen(prev => !prev);
+  };
+
+  const closeSidebar = () => {
+    setSidebarOpen(false);
+  };
+
   return (
     <div className="flex h-screen w-screen overflow-hidden bg-gradient-to-br from-blue-50 via-blue-100 to-blue-200">
       <Sidebar
         onNavigate={onNavigate}
         halamanAktif={halamanAktif}
         sidebarOpen={sidebarOpen}
-        closeSidebar={() => setSidebarOpen(false)}
+        closeSidebar={closeSidebar}
         userData={userData}
       />
-      <div className="flex flex-col flex-1 w-full max-w-full overflow-hidden">
+      <div className="flex flex-col flex-1 w-full max-w-full overflow-hidden md:ml-0">
         <Topbar
-          toggleSidebar={() => setSidebarOpen(!sidebarOpen)}
+          toggleSidebar={toggleSidebar}
           userData={userData}
         />
-        <main className="flex-1 overflow-y-auto w-full max-w-full">
+        <main className="flex-1 overflow-y-auto w-full max-w-full p-4 md:p-6">
           {children}
         </main>
       </div>
@@ -67,6 +76,8 @@ function App() {
   const [userData, setUserData] = useState(null);
   const [isLoading, setIsLoading] = useState(true);
   const { ToastContainer, showSuccess, showError, showInfo } = useToast();
+
+
 
   useEffect(() => {
     const token = localStorage.getItem("token");
@@ -476,6 +487,24 @@ function App() {
                 userData={userData}
               >
                 <SupplierPage userData={userData} />
+              </Layout>
+            </ProtectedRoute>
+          }
+        />
+
+        {/* Supplier Detail Page */}
+        <Route
+          path="/suppliers/:id"
+          element={
+            <ProtectedRoute isLoggedIn={isLoggedIn}>
+              <Layout
+                sidebarOpen={sidebarOpen}
+                setSidebarOpen={setSidebarOpen}
+                onNavigate={(page) => setHalamanAktif(page)}
+                halamanAktif="supplier"
+                userData={userData}
+              >
+                <SupplierDetailPage userData={userData} />
               </Layout>
             </ProtectedRoute>
           }

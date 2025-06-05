@@ -291,14 +291,14 @@ function ProductPage({ userData }) {
   }
 
   return (
-    <div className="min-h-screen bg-gradient-to-br from-blue-50 via-blue-100 to-blue-200 p-6">
+    <div className="min-h-full bg-transparent">
       <MessageContainer />
-      <div className="max-w-7xl mx-auto">
+      <div className="max-w-7xl mx-auto space-y-4 md:space-y-6">
         {/* Header */}
-        <div className="bg-white rounded-2xl shadow-xl p-6 mb-6 border border-blue-200">
-          <div className="flex flex-col md:flex-row md:items-center justify-between gap-4">
+        <div className="bg-white rounded-2xl shadow-xl p-4 md:p-6 border border-blue-200">
+          <div className="flex flex-col sm:flex-row sm:items-center justify-between gap-4">
             <div>
-              <h1 className="text-3xl font-bold bg-gradient-to-r from-blue-600 to-blue-800 bg-clip-text text-transparent">
+              <h1 className="text-2xl md:text-3xl font-bold bg-gradient-to-r from-blue-600 to-blue-800 bg-clip-text text-transparent">
                 Product Management
               </h1>
               <p className="text-blue-600 mt-2">
@@ -309,7 +309,7 @@ function ProductPage({ userData }) {
             {isAdmin && (
               <button
                 onClick={() => navigate("/products/add")}
-                className="flex items-center gap-2 px-6 py-3 bg-gradient-to-r from-blue-500 to-blue-600 text-white rounded-xl hover:from-blue-600 hover:to-blue-700 transition-all duration-200 shadow-lg hover:shadow-xl"
+                className="flex items-center gap-2 px-4 md:px-6 py-3 bg-gradient-to-r from-blue-500 to-blue-600 text-white rounded-xl hover:from-blue-600 hover:to-blue-700 transition-all duration-200 shadow-lg hover:shadow-xl text-sm md:text-base"
               >
                 <FaPlus /> Add Product
               </button>
@@ -318,8 +318,8 @@ function ProductPage({ userData }) {
         </div>
 
         {/* Filters and Search */}
-        <div className="bg-white rounded-2xl shadow-xl p-6 mb-6 border border-blue-200">
-          <div className="grid md:grid-cols-4 gap-4">
+        <div className="bg-white rounded-2xl shadow-xl p-4 md:p-6 border border-blue-200">
+          <div className="grid grid-cols-1 sm:grid-cols-2 lg:grid-cols-4 gap-3 md:gap-4">
             <div className="relative">
               <label htmlFor="search-products" className="sr-only">Search products</label>
               <FaSearch className="absolute left-3 top-1/2 transform -translate-y-1/2 text-blue-400" />
@@ -331,7 +331,7 @@ function ProductPage({ userData }) {
                 value={searchTerm}
                 onChange={handleSearch}
                 autoComplete="off"
-                className="w-full pl-10 pr-4 py-3 border border-blue-300 rounded-xl focus:outline-none focus:ring-2 focus:ring-blue-500"
+                className="w-full pl-10 pr-4 py-2.5 md:py-3 border border-blue-300 rounded-xl focus:outline-none focus:ring-2 focus:ring-blue-500 text-sm md:text-base"
               />
             </div>
 
@@ -344,7 +344,7 @@ function ProductPage({ userData }) {
                 value={selectedCategory}
                 onChange={handleCategoryFilter}
                 autoComplete="off"
-                className="w-full pl-10 pr-4 py-3 border border-blue-300 rounded-xl focus:outline-none focus:ring-2 focus:ring-blue-500 appearance-none"
+                className="w-full pl-10 pr-4 py-2.5 md:py-3 border border-blue-300 rounded-xl focus:outline-none focus:ring-2 focus:ring-blue-500 appearance-none text-sm md:text-base"
               >
                 <option value="">All Categories</option>
                 {categories.map((category) => (
@@ -355,8 +355,6 @@ function ProductPage({ userData }) {
               </select>
             </div>
 
-
-
             <div>
               <label htmlFor="sort-by" className="sr-only">Sort by</label>
               <select
@@ -365,7 +363,7 @@ function ProductPage({ userData }) {
                 value={sortBy}
                 onChange={(e) => setSortBy(e.target.value)}
                 autoComplete="off"
-                className="px-4 py-3 border border-blue-300 rounded-xl focus:outline-none focus:ring-2 focus:ring-blue-500"
+                className="w-full px-3 md:px-4 py-2.5 md:py-3 border border-blue-300 rounded-xl focus:outline-none focus:ring-2 focus:ring-blue-500 text-sm md:text-base"
               >
                 <option value="nama">Sort by Name</option>
                 <option value="harga">Sort by Price</option>
@@ -376,7 +374,7 @@ function ProductPage({ userData }) {
 
             <button
               onClick={toggleSortOrder}
-              className="px-4 py-3 border border-blue-300 rounded-xl hover:bg-blue-50 transition-all duration-200"
+              className="w-full px-3 md:px-4 py-2.5 md:py-3 border border-blue-300 rounded-xl hover:bg-blue-50 transition-all duration-200 text-sm md:text-base"
             >
               {sortOrder === "asc" ? "↑ Ascending" : "↓ Descending"}
             </button>
@@ -385,23 +383,24 @@ function ProductPage({ userData }) {
 
         {/* Products Table */}
         <div className="bg-white rounded-2xl shadow-xl border border-blue-200 overflow-hidden">
-          <div className="overflow-x-auto">
+          {/* Desktop Table View */}
+          <div className="hidden md:block overflow-x-auto">
             <table className="w-full">
               <thead className="bg-gradient-to-r from-blue-500 to-blue-600 text-white">
                 <tr>
-                  <th className="px-6 py-4 text-left font-semibold">Product</th>
-                  <th className="px-6 py-4 text-left font-semibold">Code</th>
-                  <th className="px-6 py-4 text-left font-semibold">Category</th>
-                  <th className="px-6 py-4 text-left font-semibold">Supplier</th>
-                  <th className="px-6 py-4 text-left font-semibold">Price</th>
-                  <th className="px-6 py-4 text-left font-semibold">Stock</th>
-                  <th className="px-6 py-4 text-center font-semibold">Actions</th>
+                  <th className="px-4 lg:px-6 py-4 text-left font-semibold">Product</th>
+                  <th className="px-4 lg:px-6 py-4 text-left font-semibold">Code</th>
+                  <th className="px-4 lg:px-6 py-4 text-left font-semibold">Category</th>
+                  <th className="px-4 lg:px-6 py-4 text-left font-semibold">Supplier</th>
+                  <th className="px-4 lg:px-6 py-4 text-left font-semibold">Price</th>
+                  <th className="px-4 lg:px-6 py-4 text-left font-semibold">Stock</th>
+                  <th className="px-4 lg:px-6 py-4 text-center font-semibold">Actions</th>
                 </tr>
               </thead>
               <tbody>
                 {loading ? (
                   <tr>
-                    <td colSpan="7" className="px-6 py-12 text-center">
+                    <td colSpan="7" className="px-4 lg:px-6 py-12 text-center">
                       <div className="flex items-center justify-center">
                         <div className="animate-spin rounded-full h-8 w-8 border-b-2 border-blue-600"></div>
                         <span className="ml-2 text-blue-600">Loading...</span>
@@ -410,7 +409,7 @@ function ProductPage({ userData }) {
                   </tr>
                 ) : products.length === 0 ? (
                   <tr>
-                    <td colSpan="7" className="px-6 py-12 text-center text-blue-600">
+                    <td colSpan="7" className="px-4 lg:px-6 py-12 text-center text-blue-600">
                       {searchTerm || selectedCategory ? (
                         <div>
                           <div className="text-4xl mb-4">🔍</div>
@@ -433,7 +432,7 @@ function ProductPage({ userData }) {
                 ) : (
                   products.map((product, index) => (
                     <tr key={product.id} className={index % 2 === 0 ? "bg-blue-50" : "bg-white"}>
-                      <td className="px-6 py-4">
+                      <td className="px-4 lg:px-6 py-4">
                         <div>
                           <div className="font-semibold text-blue-800">{product.nama}</div>
                           {product.deskripsi && (
@@ -443,16 +442,16 @@ function ProductPage({ userData }) {
                           )}
                         </div>
                       </td>
-                      <td className="px-6 py-4 text-blue-700 font-mono">{product.produk_kode}</td>
-                      <td className="px-6 py-4 text-blue-600">
+                      <td className="px-4 lg:px-6 py-4 text-blue-700 font-mono text-sm">{product.produk_kode}</td>
+                      <td className="px-4 lg:px-6 py-4 text-blue-600 text-sm">
                         {product.category_nama || getCategoryName(product.category_id)}
                       </td>
-                      <td className="px-6 py-4 text-blue-600">
+                      <td className="px-4 lg:px-6 py-4 text-blue-600 text-sm">
                         {product.supplier_nama || 'No Supplier'}
                       </td>
-                      <td className="px-6 py-4 text-blue-800 font-semibold">{formatPrice(product.harga)}</td>
-                      <td className="px-6 py-4">
-                        <span className={`px-3 py-1 rounded-full text-sm font-medium ${
+                      <td className="px-4 lg:px-6 py-4 text-blue-800 font-semibold text-sm">{formatPrice(product.harga)}</td>
+                      <td className="px-4 lg:px-6 py-4">
+                        <span className={`px-2 py-1 rounded-full text-xs font-medium ${
                           product.stock > 10
                             ? 'bg-green-100 text-green-800'
                             : product.stock > 0
@@ -462,8 +461,8 @@ function ProductPage({ userData }) {
                           {product.stock}
                         </span>
                       </td>
-                      <td className="px-6 py-4">
-                        <div className="flex items-center justify-center gap-2">
+                      <td className="px-4 lg:px-6 py-4">
+                        <div className="flex items-center justify-center gap-1">
                           <button
                             onClick={() => navigate(`/products/${product.id}`)}
                             className="p-2 text-blue-600 hover:bg-blue-100 rounded-lg transition-all duration-200"
@@ -501,41 +500,146 @@ function ProductPage({ userData }) {
             </table>
           </div>
 
+          {/* Mobile Card View */}
+          <div className="md:hidden">
+            {loading ? (
+              <div className="p-6 text-center">
+                <div className="flex items-center justify-center">
+                  <div className="animate-spin rounded-full h-8 w-8 border-b-2 border-blue-600"></div>
+                  <span className="ml-2 text-blue-600">Loading...</span>
+                </div>
+              </div>
+            ) : products.length === 0 ? (
+              <div className="p-6 text-center text-blue-600">
+                {searchTerm || selectedCategory ? (
+                  <div>
+                    <div className="text-4xl mb-4">🔍</div>
+                    <p className="text-lg font-medium mb-2">Produk tidak ditemukan</p>
+                    <p className="text-sm">
+                      {searchTerm && `Tidak ada produk yang cocok dengan "${searchTerm}"`}
+                      {searchTerm && selectedCategory && " dan "}
+                      {selectedCategory && `kategori yang dipilih`}
+                    </p>
+                  </div>
+                ) : (
+                  <div>
+                    <div className="text-4xl mb-4">📦</div>
+                    <p className="text-lg font-medium mb-2">Belum ada produk</p>
+                    <p className="text-sm">{isAdmin && "Klik 'Add Product' untuk memulai."}</p>
+                  </div>
+                )}
+              </div>
+            ) : (
+              <div className="p-4 space-y-4">
+                {products.map((product, index) => (
+                  <div key={product.id} className="bg-blue-50 rounded-xl p-4 border border-blue-200">
+                    <div className="flex justify-between items-start mb-3">
+                      <div className="flex-1 min-w-0">
+                        <h3 className="font-semibold text-blue-800 truncate">{product.nama}</h3>
+                        <p className="text-sm text-blue-600 font-mono">{product.produk_kode}</p>
+                      </div>
+                      <span className={`px-2 py-1 rounded-full text-xs font-medium ml-2 ${
+                        product.stock > 10
+                          ? 'bg-green-100 text-green-800'
+                          : product.stock > 0
+                          ? 'bg-yellow-100 text-yellow-800'
+                          : 'bg-red-100 text-red-800'
+                      }`}>
+                        {product.stock} stock
+                      </span>
+                    </div>
+
+                    <div className="space-y-2 text-sm">
+                      <div className="flex justify-between">
+                        <span className="text-blue-600">Category:</span>
+                        <span className="text-blue-800">{product.category_nama || getCategoryName(product.category_id)}</span>
+                      </div>
+                      <div className="flex justify-between">
+                        <span className="text-blue-600">Supplier:</span>
+                        <span className="text-blue-800">{product.supplier_nama || 'No Supplier'}</span>
+                      </div>
+                      <div className="flex justify-between">
+                        <span className="text-blue-600">Price:</span>
+                        <span className="text-blue-800 font-semibold">{formatPrice(product.harga)}</span>
+                      </div>
+                    </div>
+
+                    {product.deskripsi && (
+                      <p className="text-sm text-blue-600 mt-2 line-clamp-2">{product.deskripsi}</p>
+                    )}
+
+                    <div className="flex justify-end gap-2 mt-4">
+                      <button
+                        onClick={() => navigate(`/products/${product.id}`)}
+                        className="p-2 text-blue-600 hover:bg-blue-100 rounded-lg transition-all duration-200"
+                        title="View Details"
+                      >
+                        <FaEye />
+                      </button>
+
+                      {isAdmin && (
+                        <>
+                          <button
+                            onClick={() => navigate(`/products/edit/${product.id}`)}
+                            className="p-2 text-green-600 hover:bg-green-100 rounded-lg transition-all duration-200"
+                            title="Edit Product"
+                          >
+                            <FaEdit />
+                          </button>
+
+                          <ButtonLoading
+                            onClick={() => handleDelete(product.id, product.nama)}
+                            loading={deleteLoading === product.id}
+                            className="p-2 text-red-600 hover:bg-red-100 rounded-lg transition-all duration-200"
+                            title="Delete Product"
+                          >
+                            <FaTrash />
+                          </ButtonLoading>
+                        </>
+                      )}
+                    </div>
+                  </div>
+                ))}
+              </div>
+            )}
+          </div>
+
           {/* Pagination */}
           {totalPages > 1 && (
-            <div className="bg-blue-50 px-6 py-4 border-t border-blue-200">
-              <div className="flex items-center justify-between">
-                <div className="text-sm text-blue-600">
+            <div className="bg-blue-50 px-4 md:px-6 py-4 border-t border-blue-200">
+              <div className="flex flex-col sm:flex-row sm:items-center justify-between gap-4">
+                <div className="text-xs md:text-sm text-blue-600 text-center sm:text-left">
                   Showing {((currentPage - 1) * itemsPerPage) + 1} to {Math.min(currentPage * itemsPerPage, totalProducts)} of {totalProducts} products
                 </div>
 
-                <div className="flex items-center gap-2">
+                <div className="flex items-center justify-center gap-1 md:gap-2">
                   <button
                     onClick={() => handlePageChange(currentPage - 1)}
                     disabled={currentPage === 1}
-                    className="flex items-center gap-1 px-3 py-2 text-blue-600 border border-blue-300 rounded-lg hover:bg-blue-100 disabled:opacity-50 disabled:cursor-not-allowed transition-all duration-200"
+                    className="flex items-center gap-1 px-2 md:px-3 py-2 text-blue-600 border border-blue-300 rounded-lg hover:bg-blue-100 disabled:opacity-50 disabled:cursor-not-allowed transition-all duration-200 text-xs md:text-sm"
                   >
-                    <FaChevronLeft /> Previous
+                    <FaChevronLeft className="text-xs" /> <span className="hidden sm:inline">Previous</span>
                   </button>
 
                   <div className="flex items-center gap-1">
-                    {Array.from({ length: Math.min(5, totalPages) }, (_, i) => {
+                    {Array.from({ length: Math.min(window.innerWidth < 640 ? 3 : 5, totalPages) }, (_, i) => {
                       let pageNum;
-                      if (totalPages <= 5) {
+                      const maxPages = window.innerWidth < 640 ? 3 : 5;
+                      if (totalPages <= maxPages) {
                         pageNum = i + 1;
-                      } else if (currentPage <= 3) {
+                      } else if (currentPage <= Math.floor(maxPages/2) + 1) {
                         pageNum = i + 1;
-                      } else if (currentPage >= totalPages - 2) {
-                        pageNum = totalPages - 4 + i;
+                      } else if (currentPage >= totalPages - Math.floor(maxPages/2)) {
+                        pageNum = totalPages - maxPages + 1 + i;
                       } else {
-                        pageNum = currentPage - 2 + i;
+                        pageNum = currentPage - Math.floor(maxPages/2) + i;
                       }
 
                       return (
                         <button
                           key={pageNum}
                           onClick={() => handlePageChange(pageNum)}
-                          className={`px-3 py-2 rounded-lg transition-all duration-200 ${
+                          className={`px-2 md:px-3 py-2 rounded-lg transition-all duration-200 text-xs md:text-sm ${
                             currentPage === pageNum
                               ? 'bg-blue-600 text-white'
                               : 'text-blue-600 border border-blue-300 hover:bg-blue-100'
@@ -550,9 +654,9 @@ function ProductPage({ userData }) {
                   <button
                     onClick={() => handlePageChange(currentPage + 1)}
                     disabled={currentPage === totalPages}
-                    className="flex items-center gap-1 px-3 py-2 text-blue-600 border border-blue-300 rounded-lg hover:bg-blue-100 disabled:opacity-50 disabled:cursor-not-allowed transition-all duration-200"
+                    className="flex items-center gap-1 px-2 md:px-3 py-2 text-blue-600 border border-blue-300 rounded-lg hover:bg-blue-100 disabled:opacity-50 disabled:cursor-not-allowed transition-all duration-200 text-xs md:text-sm"
                   >
-                    Next <FaChevronRight />
+                    <span className="hidden sm:inline">Next</span> <FaChevronRight className="text-xs" />
                   </button>
                 </div>
               </div>

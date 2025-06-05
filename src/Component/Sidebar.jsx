@@ -8,7 +8,8 @@ import {
   FaQuestionCircle,
   FaSignOutAlt,
   FaUser,
-  FaTruck
+  FaTruck,
+  FaTimes
 } from "react-icons/fa";
 
 function Sidebar({ onNavigate, halamanAktif, sidebarOpen, closeSidebar }) {
@@ -29,19 +30,43 @@ function Sidebar({ onNavigate, halamanAktif, sidebarOpen, closeSidebar }) {
   };
 
   return (
-    <div
-      className={`bg-gradient-to-b from-blue-900 via-blue-800 to-blue-900 text-white w-64 min-h-screen flex flex-col justify-between fixed z-50 top-0 left-0 transform transition-transform duration-300 ease-in-out shadow-2xl
-      ${sidebarOpen ? "translate-x-0" : "-translate-x-full"} md:translate-x-0 md:relative`}
-    >
+    <>
+      {/* Mobile Overlay */}
+      {sidebarOpen && (
+        <div
+          className="fixed inset-0 bg-black/50 backdrop-blur-sm z-40 md:hidden"
+          onClick={closeSidebar}
+          style={{ touchAction: 'manipulation' }}
+        />
+      )}
+
+      {/* Sidebar */}
+      <div
+        data-sidebar
+        className={`bg-gradient-to-b from-blue-900 via-blue-800 to-blue-900 text-white w-64 min-h-screen flex flex-col justify-between fixed z-50 top-0 left-0 transform transition-transform duration-300 ease-in-out shadow-2xl
+        ${sidebarOpen ? "translate-x-0" : "-translate-x-full"} md:translate-x-0 md:relative md:shadow-none`}
+        style={{
+          willChange: 'transform',
+          backfaceVisibility: 'hidden'
+        }}
+      >
       {/* Logo */}
       <div>
-        <div className="bg-blue-800/30 backdrop-blur-sm p-6 flex items-center justify-center border-b border-blue-600/30">
+        <div className="bg-blue-800/30 backdrop-blur-sm p-6 flex items-center justify-between border-b border-blue-600/30">
           <div className="flex items-center gap-3">
             <div className="w-10 h-10 bg-white/20 rounded-xl flex items-center justify-center">
               <span className="text-white font-bold text-lg">ST</span>
             </div>
             <span className="text-xl font-bold">sTechno</span>
           </div>
+
+          {/* Close button for mobile */}
+          <button
+            onClick={closeSidebar}
+            className="p-2 hover:bg-white/10 rounded-lg transition-all duration-200 md:hidden"
+          >
+            <FaTimes className="text-lg" />
+          </button>
         </div>
 
         {/* Menu utama */}
@@ -144,6 +169,7 @@ function Sidebar({ onNavigate, halamanAktif, sidebarOpen, closeSidebar }) {
         </div>
       </div>
     </div>
+    </>
   );
 }
 
