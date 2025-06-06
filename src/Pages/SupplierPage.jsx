@@ -3,10 +3,13 @@ import { useNavigate } from "react-router-dom";
 import { FaFilter, FaFileExport, FaPlus, FaEye, FaEdit, FaTrash, FaPhone, FaEnvelope, FaMapMarkerAlt, FaSearch, FaChevronLeft, FaChevronRight } from "react-icons/fa";
 import { useToast } from "../Component/Toast";
 import { TableSkeleton, LoadingOverlay, ButtonLoading } from "../Component/Loading";
+import { useActivity } from "../context/ActivityContext";
+import { ActivityTypes } from "../utils/activityLogger";
 
 const SupplierPage = ({ userData }) => {
   const navigate = useNavigate();
   const { showSuccess, showError, showInfo } = useToast();
+  const { logActivity } = useActivity();
 
   // Check if user has admin role
   const isAdmin = userData?.role === 'admin' || userData?.role === 'administrator';
@@ -32,6 +35,21 @@ const SupplierPage = ({ userData }) => {
     fetchSuppliers();
   }, [currentPage, searchTerm, sortBy, sortOrder]);
 
+  // Listen for supplier updates
+  useEffect(() => {
+    const handleSupplierUpdated = (event) => {
+      console.log("Supplier updated event received:", event.detail);
+      // Refresh the supplier list
+      fetchSuppliers();
+    };
+
+    window.addEventListener('supplierUpdated', handleSupplierUpdated);
+
+    return () => {
+      window.removeEventListener('supplierUpdated', handleSupplierUpdated);
+    };
+  }, []);
+
   const fetchSuppliers = async () => {
     try {
       setLoading(true);
@@ -39,8 +57,14 @@ const SupplierPage = ({ userData }) => {
       console.log("Fetching suppliers with token:", token);
 
       // Simple fetch without complex query params for now
-      const response = await fetch("https://stechno.up.railway.app/api/suppliers", {
-        headers: { Authorization: `Bearer ${token}` }
+      // Add cache busting to ensure fresh data
+      const cacheBuster = new Date().getTime();
+      const response = await fetch(`https://stechno.up.railway.app/api/suppliers?_t=${cacheBuster}`, {
+        headers: {
+          Authorization: `Bearer ${token}`,
+          'Cache-Control': 'no-cache',
+          'Pragma': 'no-cache'
+        }
       });
 
       console.log("Suppliers response status:", response.status);
@@ -48,6 +72,13 @@ const SupplierPage = ({ userData }) => {
       if (response.ok) {
         const data = await response.json();
         console.log("Suppliers data received:", data);
+
+        // Debug: Log first supplier to see structure
+        if (data && data.length > 0) {
+          console.log("First supplier structure:", data[0]);
+        } else if (data.data && data.data.length > 0) {
+          console.log("First supplier structure (nested):", data.data[0]);
+        }
 
         // Handle different API response formats
         let suppliersData = [];
@@ -105,9 +136,9 @@ const SupplierPage = ({ userData }) => {
     try {
       showInfo("Exporting suppliers...");
       const csvContent = "data:text/csv;charset=utf-8,"
-        + "Supplier ID,Name,Contact,Email,Address\n"
+        + "Supplier ID,Name,Contact,Address\n"
         + suppliers.map(supplier =>
-            `${supplier.id},${supplier.nama},${supplier.contact_info || ''},${supplier.alamat || ''}`
+            `${supplier.id},${supplier.nama},${supplier.contact_info || ''},${supplier.address || ''}`
           ).join("\n");
 
       const encodedUri = encodeURI(csvContent);
@@ -147,6 +178,13 @@ const SupplierPage = ({ userData }) => {
 
       if (response.ok) {
         showSuccess(`Supplier "${supplierName}" deleted successfully!`);
+
+        // Log activity
+        logActivity(ActivityTypes.SUPPLIER_DELETED, {
+          name: supplierName,
+          id: supplierId
+        }, userData?.id);
+
         fetchSuppliers(); // Refresh the list
       } else {
         const errorData = await response.json();
@@ -322,17 +360,21 @@ const SupplierPage = ({ userData }) => {
                           <td className="py-4 px-6">
                             <div className="flex items-center gap-2">
                               <button
+                                onClick={() => navigate(`/suppliers/${supplier.id}`)}
                                 className="p-2 text-blue-600 hover:text-blue-800 hover:bg-blue-50 rounded-lg transition-all duration-200"
                                 title="View Details"
                               >
                                 <FaEye />
                               </button>
-                              <button
-                                className="p-2 text-green-600 hover:text-green-800 hover:bg-green-50 rounded-lg transition-all duration-200"
-                                title="Edit Supplier"
-                              >
-                                <FaEdit />
-                              </button>
+                              {isAdmin && (
+                                <button
+                                  onClick={() => navigate(`/suppliers/edit/${supplier.id}`)}
+                                  className="p-2 text-green-600 hover:text-green-800 hover:bg-green-50 rounded-lg transition-all duration-200"
+                                  title="Edit Supplier"
+                                >
+                                  <FaEdit />
+                                </button>
+                              )}
                               {isAdmin && (
                                 <ButtonLoading
                                   onClick={() => handleDeleteSupplier(supplier.id, supplier.nama)}

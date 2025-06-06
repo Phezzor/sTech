@@ -22,7 +22,7 @@ const AddTransactionPage = ({ userData }) => {
 
   // Transaction header form
   const [transactionForm, setTransactionForm] = useState({
-    user_id: userData?.username || "",
+    user_id: userData?.id || "", // Use ID instead of username
     type: "IN",
     description: ""
   });
@@ -160,43 +160,92 @@ const AddTransactionPage = ({ userData }) => {
     try {
       const token = localStorage.getItem("token");
 
-      // Create transaction header
+      // Prepare transaction data according to API documentation
+      const transactionData = {
+        tanggal: new Date().toISOString().split('T')[0], // Format: YYYY-MM-DD
+        total_amount: calculateTotal(),
+        status: "completed",
+        user_id: transactionForm.user_id,
+        type: transactionForm.type, // Include the transaction type (IN/OUT)
+        description: transactionForm.description // Include description
+      };
+
+      console.log("Creating transaction with data:", transactionData);
+
+      // Create transaction using the correct endpoint
       const transactionResponse = await fetch("https://stechno.up.railway.app/api/transaksi", {
         method: "POST",
         headers: {
           "Content-Type": "application/json",
           Authorization: `Bearer ${token}`
         },
-        body: JSON.stringify(transactionForm)
+        body: JSON.stringify(transactionData)
       });
 
+      console.log(`Transaction response status: ${transactionResponse.status}`);
+
       if (!transactionResponse.ok) {
-        const errorData = await transactionResponse.json();
-        throw new Error(errorData.message || "Failed to create transaction");
+        let errorMessage = `HTTP ${transactionResponse.status}`;
+        try {
+          const errorData = await transactionResponse.json();
+          errorMessage = errorData.message || errorMessage;
+          console.error("Transaction creation error:", errorData);
+        } catch (parseError) {
+          console.error("Failed to parse error response");
+        }
+        throw new Error(`Failed to create transaction: ${errorMessage}`);
       }
 
-      const transactionData = await transactionResponse.json();
-      const transactionId = transactionData.id || transactionData.transaction_id;
+      const transactionResult = await transactionResponse.json();
+
+      // Try multiple ways to extract transaction ID
+      const transactionId =
+        transactionResult.id ||
+        transactionResult.transaction_id ||
+        transactionResult.data?.id ||
+        transactionResult.transaction?.id ||
+        transactionResult.transaction?.transaction_id;
+
+      console.log("Transaction created successfully:", transactionResult);
+      console.log("Transaction ID extracted:", transactionId);
+      console.log("Full transaction object:", transactionResult.transaction);
+
+      // Check if transaction ID is valid
+      if (!transactionId) {
+        console.warn("Transaction ID not found in response, skipping details creation");
+        showAnimatedSuccess(`🎉 Transaction created successfully! (Details skipped due to missing ID)`);
+        setTimeout(() => {
+          navigate("/transaksi");
+        }, 1500);
+        return;
+      }
 
       // Create transaction details
       for (const detail of transactionDetails) {
+        const detailData = {
+          transaction_id: transactionId,
+          product_id: detail.product_id,
+          quantity: parseInt(detail.quantity),
+          price: parseFloat(detail.harga) // Use 'price' instead of 'harga' based on API docs
+        };
+
+        console.log("Creating detail with data:", detailData);
+
         const detailResponse = await fetch("https://stechno.up.railway.app/api/detail_transaksi", {
           method: "POST",
           headers: {
             "Content-Type": "application/json",
             Authorization: `Bearer ${token}`
           },
-          body: JSON.stringify({
-            transaction_id: transactionId,
-            product_id: detail.product_id,
-            quantity: parseInt(detail.quantity),
-            harga: parseFloat(detail.harga),
-            supplier_id: detail.supplier_id || null
-          })
+          body: JSON.stringify(detailData)
         });
 
         if (!detailResponse.ok) {
-          console.warn("Failed to create detail item:", detail);
+          const detailError = await detailResponse.json().catch(() => ({}));
+          console.warn("Failed to create detail item:", detail, "Error:", detailError);
+        } else {
+          const detailResult = await detailResponse.json();
+          console.log("Detail created successfully:", detailResult);
         }
       }
 
@@ -262,10 +311,13 @@ const AddTransactionPage = ({ userData }) => {
                     value={transactionForm.user_id}
                     onChange={handleTransactionChange}
                     className="w-full pl-10 pr-4 py-3 border border-blue-300 rounded-xl focus:outline-none focus:ring-2 focus:ring-blue-500"
-                    placeholder="Enter user ID"
+                    placeholder="Enter user ID (e.g., admin001)"
                     required
                   />
                 </div>
+                <p className="text-xs text-blue-600 mt-1">
+                  Current user: {userData?.username} (ID: {userData?.id})
+                </p>
               </div>
 
               <div>

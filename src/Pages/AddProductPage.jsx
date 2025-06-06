@@ -1,13 +1,16 @@
 import React, { useState, useEffect } from "react";
 import { useNavigate } from "react-router-dom";
-import { FaSave, FaTimes, FaArrowLeft } from "react-icons/fa";
+import { FaSave, FaTimes, FaArrowLeft, FaPlus } from "react-icons/fa";
 import { useToast } from "../Component/Toast";
 import { useAnimatedMessage } from "../Component/AnimatedMessage";
 import { ButtonLoading } from "../Component/Loading";
+import { useActivity } from "../context/ActivityContext";
+import { ActivityTypes } from "../utils/activityLogger";
 
 const AddProductPage = ({ userData }) => {
   const navigate = useNavigate();
   const { showSuccess, showError, showInfo } = useToast();
+  const { logActivity } = useActivity();
   const {
     showSuccess: showAnimatedSuccess,
     showError: showAnimatedError,
@@ -17,6 +20,10 @@ const AddProductPage = ({ userData }) => {
   const [loading, setLoading] = useState(false);
   const [categories, setCategories] = useState([]);
   const [suppliers, setSuppliers] = useState([]);
+
+  // Simple add category state
+  const [showAddCategory, setShowAddCategory] = useState(false);
+  const [newCategoryName, setNewCategoryName] = useState("");
 
   // Check if user has admin role
   const isAdmin = userData?.role === 'admin' || userData?.role === 'administrator';
@@ -83,6 +90,88 @@ const AddProductPage = ({ userData }) => {
     }));
   };
 
+  // Simple add category function
+  const handleAddCategory = async () => {
+    if (!newCategoryName.trim()) {
+      showAnimatedError("Please enter a category name");
+      return;
+    }
+
+    try {
+      const token = localStorage.getItem("token");
+
+      // Generate category ID based on existing categories
+      let categoryId;
+      if (categories.length === 0) {
+        categoryId = "CAT001";
+      } else {
+        // Find the highest existing category number
+        const existingNumbers = categories
+          .map(cat => cat.id)
+          .filter(id => id && id.startsWith('CAT'))
+          .map(id => parseInt(id.replace('CAT', '')))
+          .filter(num => !isNaN(num));
+
+        const nextNumber = existingNumbers.length > 0 ? Math.max(...existingNumbers) + 1 : 1;
+        categoryId = `CAT${String(nextNumber).padStart(3, '0')}`;
+      }
+
+      const requestBody = {
+        id: categoryId,
+        nama: newCategoryName.trim()
+      };
+
+      console.log("Creating category with data:", requestBody);
+
+      const response = await fetch("https://stechno.up.railway.app/api/categories", {
+        method: "POST",
+        headers: {
+          "Content-Type": "application/json",
+          Authorization: `Bearer ${token}`
+        },
+        body: JSON.stringify(requestBody)
+      });
+
+      console.log("Category creation response status:", response.status);
+
+      if (response.ok) {
+        const newCategory = await response.json();
+        console.log("New category created:", newCategory);
+        showAnimatedSuccess(`✨ Category "${newCategoryName}" created successfully!`);
+
+        // Create category object with proper structure
+        const categoryToAdd = {
+          id: newCategory.id || categoryId,
+          nama: newCategory.nama || newCategoryName.trim()
+        };
+
+        // Log activity
+        logActivity(ActivityTypes.CATEGORY_ADDED, {
+          name: categoryToAdd.nama,
+          id: categoryToAdd.id
+        }, userData?.id);
+
+        // Add to categories list and select it
+        setCategories(prev => [...prev, categoryToAdd]);
+        setFormData(prev => ({
+          ...prev,
+          category_id: categoryToAdd.id
+        }));
+
+        // Reset form
+        setNewCategoryName("");
+        setShowAddCategory(false);
+      } else {
+        const errorData = await response.json().catch(() => ({}));
+        console.error("Category creation failed:", errorData);
+        throw new Error(errorData.message || `HTTP ${response.status}: Failed to create category`);
+      }
+    } catch (error) {
+      console.error("Error creating category:", error);
+      showAnimatedError(`Failed to create category: ${error.message}`);
+    }
+  };
+
   const handleSubmit = async (e) => {
     e.preventDefault();
 
@@ -127,6 +216,15 @@ const AddProductPage = ({ userData }) => {
         const newProduct = await response.json();
         console.log("Product added successfully:", newProduct);
         showAnimatedSuccess(`🎉 Product "${formData.nama}" added successfully!`);
+
+        // Log activity
+        logActivity(ActivityTypes.PRODUCT_ADDED, {
+          name: formData.nama,
+          id: newProduct.id || 'unknown',
+          code: formData.produk_kode,
+          price: formData.harga,
+          stock: formData.stock
+        }, userData?.id);
 
         // Navigate after a short delay to show the success message
         setTimeout(() => {
@@ -242,19 +340,54 @@ const AddProductPage = ({ userData }) => {
                 <label className="block text-sm font-medium text-blue-700 mb-2">
                   Category
                 </label>
-                <select
-                  name="category_id"
-                  value={formData.category_id}
-                  onChange={handleInputChange}
-                  className="w-full px-4 py-3 border border-blue-300 rounded-xl focus:outline-none focus:ring-2 focus:ring-blue-500"
-                >
-                  <option value="">Select a category</option>
-                  {categories.map((category) => (
-                    <option key={category.id} value={category.id}>
-                      {category.nama}
-                    </option>
-                  ))}
-                </select>
+                <div className="space-y-3">
+                  <select
+                    name="category_id"
+                    value={formData.category_id}
+                    onChange={handleInputChange}
+                    className="w-full px-4 py-3 border border-blue-300 rounded-xl focus:outline-none focus:ring-2 focus:ring-blue-500"
+                  >
+                    <option value="">Select a category</option>
+                    {categories.map((category) => (
+                      <option key={category.id} value={category.id}>
+                        {category.nama}
+                      </option>
+                    ))}
+                  </select>
+
+                  {/* Simple Add Category Button */}
+                  <button
+                    type="button"
+                    onClick={() => setShowAddCategory(!showAddCategory)}
+                    className="flex items-center gap-2 text-blue-600 hover:text-blue-800 text-sm font-medium"
+                  >
+                    <FaPlus className="text-xs" />
+                    {showAddCategory ? "Cancel" : "Add New Category"}
+                  </button>
+
+                  {/* Simple Add Category Form */}
+                  {showAddCategory && (
+                    <div className="bg-blue-50 border border-blue-200 rounded-xl p-4">
+                      <div className="flex gap-2">
+                        <input
+                          type="text"
+                          value={newCategoryName}
+                          onChange={(e) => setNewCategoryName(e.target.value)}
+                          placeholder="Enter category name..."
+                          className="flex-1 px-3 py-2 border border-blue-300 rounded-lg focus:outline-none focus:ring-2 focus:ring-blue-500"
+                          onKeyDown={(e) => e.key === 'Enter' && handleAddCategory()}
+                        />
+                        <button
+                          type="button"
+                          onClick={handleAddCategory}
+                          className="px-4 py-2 bg-blue-600 text-white rounded-lg hover:bg-blue-700 transition-all duration-200"
+                        >
+                          Add
+                        </button>
+                      </div>
+                    </div>
+                  )}
+                </div>
               </div>
 
               <div>
