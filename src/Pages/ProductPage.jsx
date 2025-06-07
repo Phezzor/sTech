@@ -18,6 +18,12 @@ function ProductPage({ userData }) {
   // Check if user has admin role
   const isAdmin = userData?.role === 'admin' || userData?.role === 'administrator';
 
+  // Check if user has staff role (staff can edit/delete products but not add)
+  const isStaff = userData?.role === 'staff';
+
+  // Check if user can edit/delete products (admin or staff)
+  const canEditDelete = isAdmin || isStaff;
+
   // State management
   const [products, setProducts] = useState([]);
   const [categories, setCategories] = useState([]);
@@ -208,8 +214,8 @@ function ProductPage({ userData }) {
   };
 
   const handleDelete = async (productId, productName) => {
-    if (!isAdmin) {
-      showAnimatedError("Access denied. Only administrators can delete products.");
+    if (!canEditDelete) {
+      showAnimatedError("Access denied. Only administrators and staff can delete products.");
       return;
     }
 
@@ -471,7 +477,7 @@ function ProductPage({ userData }) {
                             <FaEye />
                           </button>
 
-                          {isAdmin && (
+                          {canEditDelete && (
                             <>
                               <button
                                 onClick={() => navigate(`/products/edit/${product.id}`)}
@@ -577,7 +583,7 @@ function ProductPage({ userData }) {
                         <FaEye />
                       </button>
 
-                      {isAdmin && (
+                      {canEditDelete && (
                         <>
                           <button
                             onClick={() => navigate(`/products/edit/${product.id}`)}
