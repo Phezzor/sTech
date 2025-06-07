@@ -17,6 +17,12 @@ const ProductIdPage = ({ userData }) => {
 
   // Check if user has admin role
   const isAdmin = userData?.role === 'admin' || userData?.role === 'administrator';
+
+  // Check if user has staff role (staff can edit products)
+  const isStaff = userData?.role === 'staff';
+
+  // Check if user can edit products (admin or staff)
+  const canEdit = isAdmin || isStaff;
   const [product, setProduct] = useState(null);
   const [loading, setLoading] = useState(true);
   const [error, setError] = useState(null);
@@ -269,7 +275,7 @@ const ProductIdPage = ({ userData }) => {
               </p>
             </div>
             <div className="flex items-center gap-3">
-              {!isEditing && isAdmin && (
+              {!isEditing && canEdit && (
                 <button
                   onClick={() => setIsEditing(true)}
                   className="flex items-center gap-2 px-4 py-2 bg-gradient-to-r from-green-500 to-emerald-600 text-white rounded-xl hover:from-green-600 hover:to-emerald-700 transition-all duration-200 shadow-lg hover:shadow-xl"

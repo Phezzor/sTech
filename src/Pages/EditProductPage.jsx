@@ -23,6 +23,12 @@ const EditProductPage = ({ userData }) => {
   // Check if user has admin role
   const isAdmin = userData?.role === 'admin' || userData?.role === 'administrator';
 
+  // Check if user has staff role (staff can edit products)
+  const isStaff = userData?.role === 'staff';
+
+  // Check if user can edit products (admin or staff)
+  const canEdit = isAdmin || isStaff;
+
   const [formData, setFormData] = useState({
     produk_kode: "",
     nama: "",
@@ -34,9 +40,9 @@ const EditProductPage = ({ userData }) => {
   });
 
   useEffect(() => {
-    // Redirect if not admin
-    if (!isAdmin) {
-      showError("Access denied. Only administrators can edit products.");
+    // Redirect if not admin or staff
+    if (!canEdit) {
+      showError("Access denied. Only administrators and staff can edit products.");
       navigate("/products");
       return;
     }
@@ -44,7 +50,7 @@ const EditProductPage = ({ userData }) => {
     fetchProductData();
     fetchCategories();
     fetchSuppliers();
-  }, [id, isAdmin, navigate]);
+  }, [id, canEdit, navigate]);
 
   const fetchProductData = async () => {
     try {
@@ -167,7 +173,7 @@ const EditProductPage = ({ userData }) => {
     }
   };
 
-  if (!isAdmin) {
+  if (!canEdit) {
     return null; // Will redirect in useEffect
   }
 
